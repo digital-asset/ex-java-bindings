@@ -3,11 +3,10 @@
 
 package examples.pingpong.components;
 
-import com.daml.ledger.javaapi.components.LedgerViewFlowable;
-import com.daml.ledger.javaapi.components.helpers.CommandsAndPendingSet;
-import com.daml.ledger.javaapi.components.helpers.CreatedContract;
+import com.daml.ledger.rxjava.components.LedgerViewFlowable;
+import com.daml.ledger.rxjava.components.helpers.CommandsAndPendingSet;
+import com.daml.ledger.rxjava.components.helpers.CreatedContract;
 import com.daml.ledger.javaapi.data.*;
-import com.google.protobuf.Timestamp;
 import io.reactivex.Flowable;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.pcollections.HashTreePMap;
@@ -58,8 +57,8 @@ public class PingPongBot {
                 "PingPongApp",
                 UUID.randomUUID().toString(),
                 this.party,
-                Timestamp.newBuilder().setSeconds(Instant.EPOCH.toEpochMilli() / 1000).build(),
-                Timestamp.newBuilder().setSeconds(Instant.EPOCH.plusSeconds(10).toEpochMilli() / 1000).build(),
+                Instant.EPOCH,
+                Instant.EPOCH.plusSeconds(10),
                 Collections.singletonList(command));
         PMap<Identifier, PSet<String>> pendingSet = HashTreePMap.singleton(this.templateId, HashTreePSet.singleton(contractId));
         return new CommandsAndPendingSet(commands, pendingSet);
