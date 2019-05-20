@@ -3,9 +3,8 @@
 
 package examples.pingpong.reactive;
 
-import com.daml.ledger.javaapi.LedgerClient;
+import com.daml.ledger.rxjava.LedgerClient;
 import com.daml.ledger.javaapi.data.*;
-import com.google.protobuf.Timestamp;
 import io.reactivex.Flowable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,8 +64,8 @@ public class PingPongProcessor {
                     PingPongReactiveMain.APP_ID,
                     UUID.randomUUID().toString(),
                     party,
-                    Timestamp.newBuilder().setSeconds(Instant.EPOCH.toEpochMilli() / 1000).build(),
-                    Timestamp.newBuilder().setSeconds(Instant.EPOCH.plusSeconds(10).toEpochMilli() / 1000).build(),
+                    Instant.EPOCH,
+                    Instant.EPOCH.plusSeconds(10),
                     exerciseCommands)
                 .blockingGet();
         }

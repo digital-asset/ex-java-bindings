@@ -11,18 +11,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <sdk-version>100.12.17</sdk-version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.daml.ledger</groupId>
-            <artifactId>bindings-java</artifactId>
-            <version>2.7.0</version>
+            <artifactId>bindings-rxjava</artifactId>
+            <version>${sdk-version}</version>
         </dependency>
         <dependency>
             <groupId>com.digitalasset</groupId>
             <artifactId>daml-lf-archive</artifactId>
-            <version>19.1.0</version>
+            <version>${sdk-version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>

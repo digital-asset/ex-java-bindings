@@ -5,14 +5,12 @@ package examples.pingpong.reactive;
 
 import com.digitalasset.daml_lf.DamlLf;
 import com.digitalasset.daml_lf.DamlLf1;
-import com.digitalasset.ledger.api.v1.PackageServiceOuterClass.GetPackageResponse;
 
-import com.daml.ledger.javaapi.DamlLedgerClient;
-import com.daml.ledger.javaapi.LedgerClient;
-import com.daml.ledger.javaapi.PackageClient;
+import com.daml.ledger.rxjava.DamlLedgerClient;
+import com.daml.ledger.rxjava.LedgerClient;
+import com.daml.ledger.rxjava.PackageClient;
 import com.daml.ledger.javaapi.data.*;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Timestamp;
 import io.reactivex.Flowable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,8 +107,8 @@ public class PingPongReactiveMain {
                     APP_ID,
                     UUID.randomUUID().toString(),
                     sender,
-                    Timestamp.newBuilder().setSeconds(Instant.EPOCH.toEpochMilli() / 1000).build(),
-                    Timestamp.newBuilder().setSeconds(Instant.EPOCH.plusSeconds(10).toEpochMilli() / 1000).build(),
+                    Instant.EPOCH,
+                    Instant.EPOCH.plusSeconds(10),
                     Collections.singletonList(createCommand))
                 .blockingGet();
         }
