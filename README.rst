@@ -29,8 +29,9 @@ Setting Up the Example Projects
 
 To set a project up:
 
-#. Set the username and API Key for the Digital Asset repository in your ``settings.xml`` file as
-   explained in `Installing the SDK <https://docs.daml.com/getting-started/installation.html>`_.
+#. If you do not have it already, install the DAML SDK by running::
+
+   curl https://get.daml.com | sh -s 0.13.15
 
 #. Build the Java code with `Maven <https://maven.apache.org/>`_ by running::
 
@@ -38,7 +39,12 @@ To set a project up:
 
 #. Start the sandbox by running::
 
-    da sandbox
+    daml start --sandbox-port 7600
+
+  Note: this will take over your terminal, until you press CTRL-C to kill the
+  sandbox. It will also open up your default web browser to show the Navigator,
+  which will allow you to observe the contracts getting created by running one
+  of the examples (see next step).
 
 #. Run the applications by running the following command, specifying the main class::
 
@@ -46,18 +52,20 @@ To set a project up:
         -Dexec.mainClass=<mainClass> \
         -Dexec.args="localhost 7600"
 
-    where <mainClass> is one of:
-    
-    * examples.pingpong.grpc.PingPongGrpcMain
-    * examples.pingpong.reactive.PingPongReactiveMain
-    * examples.pingpong.components.PingPongComponentsMain
+  where <mainClass> is one of:
 
-    depending on which example yuo wish to run
+  * examples.pingpong.grpc.PingPongGrpcMain
+  * examples.pingpong.reactive.PingPongReactiveMain
+  * examples.pingpong.components.PingPongComponentsMain
+
+  depending on which example you wish to run. Note that if you want to run
+  multiple examples, you should start a new sandbox for each one, otherwise
+  they might interfere.
 
 Example Project -- Ping Pong with gRPC Bindings
 -----------------------------------------------
 
-The code for this example is in the package  `examples.pingpong.grpc <src/main/java/examples/pingpong/grpc>`_. 
+The code for this example is in the package  `examples.pingpong.grpc <src/main/java/examples/pingpong/grpc>`_.
 
 PingPongGrpcMain.java
 ---------------------
@@ -80,13 +88,13 @@ PingPongProcessor.java
 
 The core of the application is the method `PingPongProcessor.runIndefinitely() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L61-L91>`_.
 
-This method retrieves a gRPC streaming endpoint using the ``GetTransactionsRequest`` request, and then creates a `RxJava <The Underlying Library: RxJava_>`_ ``StreamObserver``, providing implementations of the ``onNext``, ``onError`` and ``onComplete`` observer methods. ``RxJava`` arranges that these methods receive stream events asynchronously. 
+This method retrieves a gRPC streaming endpoint using the ``GetTransactionsRequest`` request, and then creates a `RxJava <The Underlying Library: RxJava_>`_ ``StreamObserver``, providing implementations of the ``onNext``, ``onError`` and ``onComplete`` observer methods. ``RxJava`` arranges that these methods receive stream events asynchronously.
 
 The method `onNext <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L74-L76>`_ is the main driver, extracting the transaction list from each ``GetTransactionResponse``, and passing in to  ``processTransaction()`` for processing. This method, and the method ``processTransaction()`` implents the application logic.
 
 `processTransaction() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L98-L117>`_ extracts all creation events from the the transaction and passes them to ``processEvent()``. This produces a list of commands to be sent to the ledegr to further the workflow, and these are packages up in a ``Commands`` request and sent to the ledger.
 
-`processEvent() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L129-L169>`_ takes a transaction event and turns it into a stream of commands to be sent back to the ledger. To do this, it examines the event for the correct package and template (it's a create of a ``Ping`` or ``Pong`` template) and then looks at the receiving part to decide if this processor should respond. If so, an exercise command for the correct choice is created and returned in a ``Stream``. 
+`processEvent() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L129-L169>`_ takes a transaction event and turns it into a stream of commands to be sent back to the ledger. To do this, it examines the event for the correct package and template (it's a create of a ``Ping`` or ``Pong`` template) and then looks at the receiving part to decide if this processor should respond. If so, an exercise command for the correct choice is created and returned in a ``Stream``.
 
 In all other cases, an empty ``Stream`` is returned, indication no action is required.
 
@@ -164,7 +172,7 @@ PingPongComponentsMain.java
 The entry point for the Java code is the main class `PingPongComponentsMain <src/main/java/examples/pingpong/components/PingPongComponentsMain.java#L37-L85>`_.
 Look at this class to see:
 
-- how to connect to and interact with the DAML Ledger via the Java Binding library 
+- how to connect to and interact with the DAML Ledger via the Java Binding library
 - how to use the Reactive Components to build an automation for both parties
 
 PingPongBot
