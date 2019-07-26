@@ -13,3 +13,4 @@ navigator.history
 .idea/
 example-ping-pong-java.iml
 .vscode/settings.json
+/.daml
