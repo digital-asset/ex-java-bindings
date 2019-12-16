@@ -101,21 +101,22 @@ public class PingPongProcessor {
                 .flatMap(e -> processEvent(tx.getWorkflowId(), e))
                 .collect(Collectors.toList());
 
-        SubmitRequest request = SubmitRequest.newBuilder()
-                .setCommands(Commands.newBuilder()
-                        .setCommandId(UUID.randomUUID().toString())
-                        .setLedgerEffectiveTime(Timestamp.newBuilder().setSeconds(Instant.EPOCH.toEpochMilli() / 1000))
-                        .setMaximumRecordTime(Timestamp.newBuilder().setSeconds(Instant.EPOCH.plusSeconds(10).toEpochMilli() / 1000))
-                        .setWorkflowId(tx.getWorkflowId())
-                        .setLedgerId(ledgerId)
-                        .setParty(party)
-                        .setApplicationId(PingPongGrpcMain.APP_ID)
-                        .addAllCommands(commands)
-                        .build())
-                .build();
-        submissionService.submit(request);
+        if (!commands.isEmpty()) {
+            SubmitRequest request = SubmitRequest.newBuilder()
+                    .setCommands(Commands.newBuilder()
+                            .setCommandId(UUID.randomUUID().toString())
+                            .setLedgerEffectiveTime(Timestamp.newBuilder().setSeconds(Instant.EPOCH.toEpochMilli() / 1000))
+                            .setMaximumRecordTime(Timestamp.newBuilder().setSeconds(Instant.EPOCH.plusSeconds(10).toEpochMilli() / 1000))
+                            .setWorkflowId(tx.getWorkflowId())
+                            .setLedgerId(ledgerId)
+                            .setParty(party)
+                            .setApplicationId(PingPongGrpcMain.APP_ID)
+                            .addAllCommands(commands)
+                            .build())
+                    .build();
+            submissionService.submit(request);
+        }
     }
-
     /**
      * For each {@link CreatedEvent} where the <code>receiver</code> is
      * the current party, exercise the <code>Pong</code> choice of <code>Ping</code> contracts, or the <code>Ping</code>

@@ -3,8 +3,8 @@
 
 package examples.pingpong.reactive;
 
-import com.digitalasset.daml_lf.DamlLf;
-import com.digitalasset.daml_lf.DamlLf1;
+import com.digitalasset.daml_lf_1_6.DamlLf;
+import com.digitalasset.daml_lf_1_6.DamlLf1;
 
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.daml.ledger.rxjava.LedgerClient;
