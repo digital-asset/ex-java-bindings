@@ -31,7 +31,7 @@ To set a project up:
 
 #. If you do not have it already, install the DAML SDK by running::
 
-   curl https://get.daml.com | sh -s 0.13.15
+   curl https://get.daml.com | sh -s 0.13.40
 
 #. Build the Java code with `Maven <https://maven.apache.org/>`_ by running::
 

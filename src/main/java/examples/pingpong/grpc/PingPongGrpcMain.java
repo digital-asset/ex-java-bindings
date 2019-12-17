@@ -3,8 +3,8 @@
 
 package examples.pingpong.grpc;
 
-import com.digitalasset.daml_lf.DamlLf;
-import com.digitalasset.daml_lf.DamlLf1;
+import com.digitalasset.daml_lf_1_6.DamlLf;
+import com.digitalasset.daml_lf_1_6.DamlLf1;
 import com.digitalasset.ledger.api.v1.CommandSubmissionServiceGrpc;
 import com.digitalasset.ledger.api.v1.CommandSubmissionServiceGrpc.CommandSubmissionServiceFutureStub;
 import com.digitalasset.ledger.api.v1.CommandSubmissionServiceOuterClass.SubmitRequest;
