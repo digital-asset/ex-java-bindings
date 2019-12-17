@@ -56,7 +56,6 @@ To set a project up:
 
   * examples.pingpong.grpc.PingPongGrpcMain
   * examples.pingpong.reactive.PingPongReactiveMain
-  * examples.pingpong.components.PingPongComponentsMain
 
   depending on which example you wish to run. Note that if you want to run
   multiple examples, you should start a new sandbox for each one, otherwise
@@ -159,42 +158,6 @@ The application prints statements similar to these:
 
     14:36:24.789 [client-1] INFO  e.p.reactive.PingPongProcessor - Bob is exercising RespondPong on #3136:0 in workflow Ping-Alice-1 at count 0
     14:36:24.791 [client-0] INFO  e.p.reactive.PingPongProcessor - Alice is exercising RespondPing on #3139:1 in workflow Ping-Alice-0 at count 1
-
-
-Example Project -- Ping Pong with Reactive Components
------------------------------------------------------
-
-The code for this example is in the package `examples.pingpong.components <src/main/java/examples/pingpong/components>`_.
-
-PingPongComponentsMain.java
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The entry point for the Java code is the main class `PingPongComponentsMain <src/main/java/examples/pingpong/components/PingPongComponentsMain.java#L37-L85>`_.
-Look at this class to see:
-
-- how to connect to and interact with the DAML Ledger via the Java Binding library
-- how to use the Reactive Components to build an automation for both parties
-
-PingPongBot
-^^^^^^^^^^^
-
-At high level, this application follows the same steps as the one without Reactive Components
-except for the ``PingPongProcessor``. In this application, the ``PingPongProcessor`` is replaced by
-the `PingPongBot <src/main/java/examples/pingpong/components/PingPongBot.java>`_.
-
-The `PingPongBot <src/main/java/examples/pingpong/components/PingPongBot.java#L27-L115>`_ has two important methods:
-
-- `getContractInfo() <src/main/java/examples/pingpong/components/PingPongBot.java#L68-L73>`_ which is used to get the
-  information useful to the application from a created contract and the context
-- `process() <src/main/java/examples/pingpong/components/PingPongBot.java#L43-L47>`_ which implements the logic of the application
-  by converting the local view of the Ledger into a stream of ``Commands``
-
-Output
-^^^^^^
-
-The application prints statements similar to the ones seen in the section above.
-
-.. _ledger-api-java-binding-underlying-library:
 
 The Underlying Library: RxJava
 ==============================
