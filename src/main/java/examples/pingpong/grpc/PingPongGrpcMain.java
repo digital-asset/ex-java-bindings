@@ -194,7 +194,7 @@ public class PingPongGrpcMain {
                 Stream<List<String>> moduleDNames =
                         lfPackage.getModulesList().stream().map(m -> internedDName.get(m.getNameInternedDname()));
 
-                // check if the PingPong module is in the current package package
+                // check if the PingPong module is in the current package
                 if (moduleDNames.anyMatch(m -> m.size() == 1 && m.get(0).equals("PingPong")))
                     return packageId;
 
