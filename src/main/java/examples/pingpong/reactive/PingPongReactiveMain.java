@@ -3,8 +3,8 @@
 
 package examples.pingpong.reactive;
 
-import com.digitalasset.daml_lf_1_6.DamlLf;
-import com.digitalasset.daml_lf_1_6.DamlLf1;
+import com.digitalasset.daml_lf_1_7.DamlLf;
+import com.digitalasset.daml_lf_1_7.DamlLf1;
 
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.daml.ledger.rxjava.LedgerClient;
@@ -17,8 +17,11 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PingPongReactiveMain {
 
@@ -148,17 +151,21 @@ public class PingPongReactiveMain {
             DamlLf.ArchivePayload payload = DamlLf.ArchivePayload.parseFrom(getPackageResponse.getArchivePayload());
             // get the DAML LF package
             DamlLf1.Package lfPackage = payload.getDamlLf1();
-            // check if the PingPong module is in the current package package
-            Optional<DamlLf1.Module> pingPongModule = lfPackage.getModulesList().stream()
-                    .filter(m -> m.getName().getSegmentsList().contains("PingPong")).findFirst();
+            // extract module names
+            List<String> internedStrings = lfPackage.getInternedStringsList();
+            List<List<String>> internedDName =
+                    lfPackage.getInternedDottedNamesList().stream().map(name ->
+                            name.getSegmentsInternedStrList().stream().map(internedStrings::get).collect(Collectors.toList())
+                    ).collect(Collectors.toList());
+            Stream<List<String>> moduleDNames =
+                    lfPackage.getModulesList().stream().map(m -> internedDName.get(m.getNameInternedDname()));
 
-            if (pingPongModule.isPresent())
-                return true;
+            // check if the PingPong module is in the current package
+            return (moduleDNames.anyMatch(m -> m.size() == 1 && m.get(0).equals("PingPong")));
 
         } catch (InvalidProtocolBufferException e) {
             logger.error("Error parsing DAML-LF package", e);
             throw new RuntimeException(e);
         }
-        return false;
     }
 }

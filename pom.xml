@@ -11,7 +11,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <sdk-version>100.13.40</sdk-version>
+        <sdk-version>100.13.41</sdk-version>
     </properties>
 
     <dependencies>
@@ -22,7 +22,7 @@
         </dependency>
         <dependency>
             <groupId>com.digitalasset</groupId>
-            <artifactId>daml-lf-1.6-archive-java-proto</artifactId>
+            <artifactId>daml-lf-1.7-archive-java-proto</artifactId>
             <version>${sdk-version}</version>
         </dependency>
         <dependency>
