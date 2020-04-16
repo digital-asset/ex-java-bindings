@@ -1,42 +1,38 @@
-// Copyright (c) 2019, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.grpc;
 
-import com.digitalasset.daml_lf_1_7.DamlLf;
-import com.digitalasset.daml_lf_1_7.DamlLf1;
-import com.digitalasset.ledger.api.v1.CommandSubmissionServiceGrpc;
-import com.digitalasset.ledger.api.v1.CommandSubmissionServiceGrpc.CommandSubmissionServiceFutureStub;
-import com.digitalasset.ledger.api.v1.CommandSubmissionServiceOuterClass.SubmitRequest;
-import com.digitalasset.ledger.api.v1.CommandsOuterClass.Command;
-import com.digitalasset.ledger.api.v1.CommandsOuterClass.Commands;
-import com.digitalasset.ledger.api.v1.CommandsOuterClass.CreateCommand;
-import com.digitalasset.ledger.api.v1.LedgerIdentityServiceGrpc;
-import com.digitalasset.ledger.api.v1.LedgerIdentityServiceGrpc.LedgerIdentityServiceBlockingStub;
-import com.digitalasset.ledger.api.v1.LedgerIdentityServiceOuterClass.GetLedgerIdentityRequest;
-import com.digitalasset.ledger.api.v1.LedgerIdentityServiceOuterClass.GetLedgerIdentityResponse;
-import com.digitalasset.ledger.api.v1.PackageServiceGrpc;
-import com.digitalasset.ledger.api.v1.PackageServiceGrpc.PackageServiceBlockingStub;
-import com.digitalasset.ledger.api.v1.PackageServiceOuterClass.GetPackageRequest;
-import com.digitalasset.ledger.api.v1.PackageServiceOuterClass.GetPackageResponse;
-import com.digitalasset.ledger.api.v1.PackageServiceOuterClass.ListPackagesRequest;
-import com.digitalasset.ledger.api.v1.PackageServiceOuterClass.ListPackagesResponse;
-import com.digitalasset.ledger.api.v1.ValueOuterClass.Identifier;
-import com.digitalasset.ledger.api.v1.ValueOuterClass.Record;
-import com.digitalasset.ledger.api.v1.ValueOuterClass.RecordField;
-import com.digitalasset.ledger.api.v1.ValueOuterClass.Value;
+import com.daml.ledger.api.v1.CommandSubmissionServiceGrpc;
+import com.daml.ledger.api.v1.CommandSubmissionServiceGrpc.CommandSubmissionServiceFutureStub;
+import com.daml.ledger.api.v1.CommandSubmissionServiceOuterClass.SubmitRequest;
+import com.daml.ledger.api.v1.CommandsOuterClass.Command;
+import com.daml.ledger.api.v1.CommandsOuterClass.Commands;
+import com.daml.ledger.api.v1.CommandsOuterClass.CreateCommand;
+import com.daml.ledger.api.v1.LedgerIdentityServiceGrpc;
+import com.daml.ledger.api.v1.LedgerIdentityServiceGrpc.LedgerIdentityServiceBlockingStub;
+import com.daml.ledger.api.v1.LedgerIdentityServiceOuterClass.GetLedgerIdentityRequest;
+import com.daml.ledger.api.v1.LedgerIdentityServiceOuterClass.GetLedgerIdentityResponse;
+import com.daml.ledger.api.v1.PackageServiceGrpc;
+import com.daml.ledger.api.v1.PackageServiceGrpc.PackageServiceBlockingStub;
+import com.daml.ledger.api.v1.PackageServiceOuterClass.GetPackageRequest;
+import com.daml.ledger.api.v1.PackageServiceOuterClass.GetPackageResponse;
+import com.daml.ledger.api.v1.PackageServiceOuterClass.ListPackagesRequest;
+import com.daml.ledger.api.v1.PackageServiceOuterClass.ListPackagesResponse;
+import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
+import com.daml.ledger.api.v1.ValueOuterClass.Record;
+import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
+import com.daml.ledger.api.v1.ValueOuterClass.Value;
+import com.digitalasset.daml_lf_1_8.DamlLf;
+import com.digitalasset.daml_lf_1_8.DamlLf1;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Timestamp;
+import com.google.protobuf.ProtocolStringList;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PingPongGrpcMain {
 
@@ -54,10 +50,10 @@ public class PingPongGrpcMain {
             System.exit(-1);
         }
         String host = args[0];
-        int port = Integer.valueOf(args[1]);
+        int port = Integer.parseInt(args[1]);
 
         // each party will create this number of initial Ping contracts
-        int numInitialContracts = args.length == 3 ? Integer.valueOf(args[2]) : 10;
+        int numInitialContracts = args.length == 3 ? Integer.parseInt(args[2]) : 10;
 
         // Initialize a plaintext gRPC channel
         ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
@@ -133,10 +129,6 @@ public class PingPongGrpcMain {
 
             SubmitRequest submitRequest = SubmitRequest.newBuilder().setCommands(Commands.newBuilder()
                     .setLedgerId(ledgerId)
-                    // set current time to ledger effective time (LET)
-                    .setLedgerEffectiveTime(Timestamp.newBuilder().setSeconds(Instant.EPOCH.toEpochMilli() / 1000))
-                    // set maximum record time (MRT) to now+5s
-                    .setMaximumRecordTime(Timestamp.newBuilder().setSeconds(Instant.EPOCH.plusSeconds(5).toEpochMilli() / 1000))
                     .setCommandId(UUID.randomUUID().toString())
                     .setWorkflowId(String.format("Ping-%s-%d", sender, i))
                     .setParty(sender)
@@ -186,17 +178,28 @@ public class PingPongGrpcMain {
                 // get the DAML LF package
                 DamlLf1.Package lfPackage = payload.getDamlLf1();
                 // extract module names
-                List<String> internedStrings = lfPackage.getInternedStringsList();
-                List<List<String>> internedDName =
-                        lfPackage.getInternedDottedNamesList().stream().map(name ->
-                                name.getSegmentsInternedStrList().stream().map(internedStrings::get).collect(Collectors.toList())
-                        ).collect(Collectors.toList());
-                Stream<List<String>> moduleDNames =
-                        lfPackage.getModulesList().stream().map(m -> internedDName.get(m.getNameInternedDname()));
+                List<DamlLf1.InternedDottedName> internedDottedNamesList =
+                        lfPackage.getInternedDottedNamesList();
+                ProtocolStringList internedStringsList = lfPackage.getInternedStringsList();
 
-                // check if the PingPong module is in the current package
-                if (moduleDNames.anyMatch(m -> m.size() == 1 && m.get(0).equals("PingPong")))
-                    return packageId;
+                for (DamlLf1.Module module : lfPackage.getModulesList()) {
+                    DamlLf1.DottedName name = null;
+                    switch (module.getNameCase()) {
+                        case NAME_DNAME:
+                            name = module.getNameDname();
+                            break;
+                        case NAME_INTERNED_DNAME:
+                            List<Integer> nameIndexes = internedDottedNamesList.get(module.getNameInternedDname()).getSegmentsInternedStrList();
+                            List<String> nameSegments = nameIndexes.stream().map(internedStringsList::get).collect(Collectors.toList());
+                            name = DamlLf1.DottedName.newBuilder().addAllSegments(nameSegments).build();
+                            break;
+                        case NAME_NOT_SET:
+                            break;
+                    }
+                    if (name != null && name.getSegmentsList().size() == 1 && name.getSegmentsList().get(0).equals("PingPong")) {
+                        return packageId;
+                    }
+                }
 
             } catch (InvalidProtocolBufferException e) {
                 e.printStackTrace();

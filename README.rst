@@ -3,7 +3,7 @@ Java Bindings Example
 
 ::
 
-  Copyright (c) 2019, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+  Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
   SPDX-License-Identifier: Apache-2.0
 
 
@@ -31,7 +31,7 @@ To set a project up:
 
 #. If you do not have it already, install the DAML SDK by running::
 
-   curl https://get.daml.com | sh -s 0.13.41
+   curl https://get.daml.com | sh -s 1.0.0
 
 #. Build the Java code with `Maven <https://maven.apache.org/>`_ by running::
 

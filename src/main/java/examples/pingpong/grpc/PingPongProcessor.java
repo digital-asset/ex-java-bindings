@@ -1,34 +1,32 @@
-// Copyright (c) 2019, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.grpc;
 
-import com.digitalasset.ledger.api.v1.CommandSubmissionServiceGrpc;
-import com.digitalasset.ledger.api.v1.CommandSubmissionServiceGrpc.CommandSubmissionServiceBlockingStub;
-import com.digitalasset.ledger.api.v1.CommandSubmissionServiceOuterClass.SubmitRequest;
-import com.digitalasset.ledger.api.v1.CommandsOuterClass.Command;
-import com.digitalasset.ledger.api.v1.CommandsOuterClass.Commands;
-import com.digitalasset.ledger.api.v1.CommandsOuterClass.ExerciseCommand;
-import com.digitalasset.ledger.api.v1.EventOuterClass.CreatedEvent;
-import com.digitalasset.ledger.api.v1.EventOuterClass.Event;
-import com.digitalasset.ledger.api.v1.LedgerOffsetOuterClass.LedgerOffset;
-import com.digitalasset.ledger.api.v1.LedgerOffsetOuterClass.LedgerOffset.LedgerBoundary;
-import com.digitalasset.ledger.api.v1.TransactionFilterOuterClass.Filters;
-import com.digitalasset.ledger.api.v1.TransactionFilterOuterClass.TransactionFilter;
-import com.digitalasset.ledger.api.v1.TransactionOuterClass.Transaction;
-import com.digitalasset.ledger.api.v1.TransactionServiceGrpc;
-import com.digitalasset.ledger.api.v1.TransactionServiceGrpc.TransactionServiceStub;
-import com.digitalasset.ledger.api.v1.TransactionServiceOuterClass.GetTransactionsRequest;
-import com.digitalasset.ledger.api.v1.TransactionServiceOuterClass.GetTransactionsResponse;
-import com.digitalasset.ledger.api.v1.ValueOuterClass.Identifier;
-import com.digitalasset.ledger.api.v1.ValueOuterClass.Record;
-import com.digitalasset.ledger.api.v1.ValueOuterClass.RecordField;
-import com.digitalasset.ledger.api.v1.ValueOuterClass.Value;
-import com.google.protobuf.Timestamp;
+import com.daml.ledger.api.v1.CommandSubmissionServiceGrpc;
+import com.daml.ledger.api.v1.CommandSubmissionServiceGrpc.CommandSubmissionServiceBlockingStub;
+import com.daml.ledger.api.v1.CommandSubmissionServiceOuterClass.SubmitRequest;
+import com.daml.ledger.api.v1.CommandsOuterClass.Command;
+import com.daml.ledger.api.v1.CommandsOuterClass.Commands;
+import com.daml.ledger.api.v1.CommandsOuterClass.ExerciseCommand;
+import com.daml.ledger.api.v1.EventOuterClass.CreatedEvent;
+import com.daml.ledger.api.v1.EventOuterClass.Event;
+import com.daml.ledger.api.v1.LedgerOffsetOuterClass.LedgerOffset;
+import com.daml.ledger.api.v1.LedgerOffsetOuterClass.LedgerOffset.LedgerBoundary;
+import com.daml.ledger.api.v1.TransactionFilterOuterClass.Filters;
+import com.daml.ledger.api.v1.TransactionFilterOuterClass.TransactionFilter;
+import com.daml.ledger.api.v1.TransactionOuterClass.Transaction;
+import com.daml.ledger.api.v1.TransactionServiceGrpc;
+import com.daml.ledger.api.v1.TransactionServiceGrpc.TransactionServiceStub;
+import com.daml.ledger.api.v1.TransactionServiceOuterClass.GetTransactionsRequest;
+import com.daml.ledger.api.v1.TransactionServiceOuterClass.GetTransactionsResponse;
+import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
+import com.daml.ledger.api.v1.ValueOuterClass.Record;
+import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
+import com.daml.ledger.api.v1.ValueOuterClass.Value;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -105,8 +103,6 @@ public class PingPongProcessor {
             SubmitRequest request = SubmitRequest.newBuilder()
                     .setCommands(Commands.newBuilder()
                             .setCommandId(UUID.randomUUID().toString())
-                            .setLedgerEffectiveTime(Timestamp.newBuilder().setSeconds(Instant.EPOCH.toEpochMilli() / 1000))
-                            .setMaximumRecordTime(Timestamp.newBuilder().setSeconds(Instant.EPOCH.plusSeconds(10).toEpochMilli() / 1000))
                             .setWorkflowId(tx.getWorkflowId())
                             .setLedgerId(ledgerId)
                             .setParty(party)
@@ -117,6 +113,7 @@ public class PingPongProcessor {
             submissionService.submit(request);
         }
     }
+
     /**
      * For each {@link CreatedEvent} where the <code>receiver</code> is
      * the current party, exercise the <code>Pong</code> choice of <code>Ping</code> contracts, or the <code>Ping</code>
