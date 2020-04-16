@@ -1,27 +1,24 @@
-// Copyright (c) 2019, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.reactive;
 
-import com.digitalasset.daml_lf_1_7.DamlLf;
-import com.digitalasset.daml_lf_1_7.DamlLf1;
-
+import com.daml.ledger.javaapi.data.*;
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.daml.ledger.rxjava.LedgerClient;
 import com.daml.ledger.rxjava.PackageClient;
-import com.daml.ledger.javaapi.data.*;
+import com.digitalasset.daml_lf_1_8.DamlLf;
+import com.digitalasset.daml_lf_1_8.DamlLf1;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.ProtocolStringList;
 import io.reactivex.Flowable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PingPongReactiveMain {
 
@@ -42,13 +39,13 @@ public class PingPongReactiveMain {
             System.exit(-1);
         }
         String host = args[0];
-        int port = Integer.valueOf(args[1]);
+        int port = Integer.parseInt(args[1]);
 
         // each party will create this number of initial Ping contracts
-        int numInitialContracts = args.length == 3 ? Integer.valueOf(args[2]) : 10;
+        int numInitialContracts = args.length == 3 ? Integer.parseInt(args[2]) : 10;
 
         // create a client object to access services on the ledger
-        DamlLedgerClient client = DamlLedgerClient.forHostWithLedgerIdDiscovery(host, port, Optional.empty());
+        DamlLedgerClient client = DamlLedgerClient.newBuilder(host, port).build();
 
         // Connects to the ledger and runs initial validation
         client.connect();
@@ -110,10 +107,8 @@ public class PingPongReactiveMain {
                     APP_ID,
                     UUID.randomUUID().toString(),
                     sender,
-                    Instant.EPOCH,
-                    Instant.EPOCH.plusSeconds(10),
                     Collections.singletonList(createCommand))
-                .blockingGet();
+                    .blockingGet();
         }
     }
 
@@ -152,20 +147,33 @@ public class PingPongReactiveMain {
             // get the DAML LF package
             DamlLf1.Package lfPackage = payload.getDamlLf1();
             // extract module names
-            List<String> internedStrings = lfPackage.getInternedStringsList();
-            List<List<String>> internedDName =
-                    lfPackage.getInternedDottedNamesList().stream().map(name ->
-                            name.getSegmentsInternedStrList().stream().map(internedStrings::get).collect(Collectors.toList())
-                    ).collect(Collectors.toList());
-            Stream<List<String>> moduleDNames =
-                    lfPackage.getModulesList().stream().map(m -> internedDName.get(m.getNameInternedDname()));
+            List<DamlLf1.InternedDottedName> internedDottedNamesList =
+                    lfPackage.getInternedDottedNamesList();
+            ProtocolStringList internedStringsList = lfPackage.getInternedStringsList();
 
-            // check if the PingPong module is in the current package
-            return (moduleDNames.anyMatch(m -> m.size() == 1 && m.get(0).equals("PingPong")));
+            for (DamlLf1.Module module : lfPackage.getModulesList()) {
+                DamlLf1.DottedName name = null;
+                switch (module.getNameCase()) {
+                    case NAME_DNAME:
+                        name = module.getNameDname();
+                        break;
+                    case NAME_INTERNED_DNAME:
+                        List<Integer> nameIndexes = internedDottedNamesList.get(module.getNameInternedDname()).getSegmentsInternedStrList();
+                        List<String> nameSegments = nameIndexes.stream().map(internedStringsList::get).collect(Collectors.toList());
+                        name = DamlLf1.DottedName.newBuilder().addAllSegments(nameSegments).build();
+                        break;
+                    case NAME_NOT_SET:
+                        break;
+                }
+                if (name != null && name.getSegmentsList().size() == 1 && name.getSegmentsList().get(0).equals("PingPong")) {
+                    return true;
+                }
+            }
 
         } catch (InvalidProtocolBufferException e) {
             logger.error("Error parsing DAML-LF package", e);
             throw new RuntimeException(e);
         }
+        return false;
     }
 }

@@ -1,15 +1,14 @@
-// Copyright (c) 2019, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.reactive;
 
-import com.daml.ledger.rxjava.LedgerClient;
 import com.daml.ledger.javaapi.data.*;
+import com.daml.ledger.rxjava.LedgerClient;
 import io.reactivex.Flowable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,8 +19,6 @@ import java.util.stream.Stream;
 public class PingPongProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(PingPongProcessor.class);
-
-    private static final List<String> PINGPONG_PARAMETERS = Arrays.asList("sender", "receiver", "count");
 
     private final String party;
     private final String ledgerId;
@@ -64,10 +61,8 @@ public class PingPongProcessor {
                     PingPongReactiveMain.APP_ID,
                     UUID.randomUUID().toString(),
                     party,
-                    Instant.EPOCH,
-                    Instant.EPOCH.plusSeconds(10),
                     exerciseCommands)
-                .blockingGet();
+                    .blockingGet();
         }
     }
 
