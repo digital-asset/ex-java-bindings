@@ -104,7 +104,7 @@ public class PingPongProcessor {
                 template,
                 contractId,
                 choice,
-                new Record(Collections.emptyList()));
+                new DamlRecord(Collections.emptyList()));
 
         return Stream.of(cmd);
     }
