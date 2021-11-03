@@ -93,11 +93,11 @@ public class PingPongReactiveMain {
         for (int i = 0; i < numContracts; i++) {
             // command that creates the initial Ping contract with the required parameters according to the model
             CreateCommand createCommand = new CreateCommand(pingIdentifier,
-                    new Record(
+                    new DamlRecord(
                             pingIdentifier,
-                            new Record.Field("sender", new Party(sender)),
-                            new Record.Field("receiver", new Party(receiver)),
-                            new Record.Field("count", new Int64(0))
+                            new DamlRecord.Field("sender", new Party(sender)),
+                            new DamlRecord.Field("receiver", new Party(receiver)),
+                            new DamlRecord.Field("count", new Int64(0))
                     )
             );
 
