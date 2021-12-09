@@ -1,0 +1,153 @@
+module Betting where
+
+import Daml.Script
+import DA.Date
+import DA.Time
+import DA.Optional
+
+type SelectionId = Int
+data RaceId = RACE_1 | RACE_2 | RACE_3 | RACE_4 | RACE_5 | RACE_6 deriving (Eq, Show, Ord, Enum, Bounded)
+data HorseId = HORSE_1 | HORSE_2 | HORSE_3 | HORSE_4 | HORSE_5 | HORSE_6 deriving (Eq, Show, Ord, Enum, Bounded)
+data BetType = WIN | PLACE | QUINELLA | QUINELLA_PLACE | THREE_PICK_ONE | FORECAST | TRIO | TIERCE | DOUBLE_TRIO | TRIPLE_TRIO deriving (Eq, Show, Ord)
+data Currency = HKD | GBP | AUD deriving (Eq, Show)
+data Location = HK | UK | AU deriving (Eq, Show)
+data WalletTransactionType = DEPOSIT | WITHDRAWAL | BET | PAYOUT deriving (Eq, Show)
+data BetStatus = New | Processed | Paid_Out | No_Payout deriving (Eq, Show)
+-- data Selection = Selection with 
+--   selectionId: SelectionId
+--   raceId: RaceId
+--   horseId: HorseId
+--     deriving (Eq, Show, Ord)
+
+data Selection = Selection with 
+  selectionId: Int
+  raceId: Text
+  horseId: Text
+    deriving (Eq, Show, Ord)
+
+-- template BetRequest 
+--   with
+--     betId: Text
+--     raceIds: [RaceId]
+--     betType: BetType
+--     betStatus: BetStatus
+--     betAmount: Decimal
+--     payoutAmount: Decimal
+--     currency: Currency
+--     betTime: Time
+--     selections: [Selection]
+--     location: Location
+--     bettor: Party
+--     hostOperator: Party
+--     guestOperator: Party
+--   where
+--     signatory bettor
+--     observer hostOperator
+--     controller guestOperator can 
+--       Accept: ContractId Bet
+--         do create Bet with betDetails = this; ..
+
+template BetRequest 
+  with
+    betId: Text
+    betCount: Text
+    raceIds: [Text]
+    betType: Text
+    betStatus: Text
+    betAmount: Decimal
+    payoutAmount: Decimal
+    currency: Text
+    betTime: Time
+    -- selections: [Selection]
+    selectionId: Int
+    selectionRaceId: Text
+    selectionHorseId: Text
+    location: Text
+    bettor: Party
+    hostOperator: Party
+    guestOperator: Party
+  where
+    signatory bettor
+    observer hostOperator
+    controller guestOperator can 
+      Accept: ContractId Bet
+        do create Bet with ..
+
+template Bet
+  with 
+    betId: Text
+    betCount: Text
+    raceIds: [Text]
+    betType: Text
+    betStatus: Text
+    betAmount: Decimal
+    payoutAmount: Decimal
+    currency: Text
+    betTime: Time
+    -- selections: [Selection]
+    selectionId: Int
+    selectionRaceId: Text
+    selectionHorseId: Text
+    location: Text
+    bettor: Party
+    hostOperator: Party
+    guestOperator: Party
+  where
+    signatory bettor, guestOperator
+    observer hostOperator
+
+
+-- WITH PARTY ALLOCATION
+demoWithPartyAllocation = script do
+  
+    hostOperator <- allocatePartyWithHint "HKJC" (PartyIdHint "HKJC")
+    guestOperator <- allocatePartyWithHint "UKTote" (PartyIdHint "UKTote")
+    bettors@[bettor1,bettor2,bettor3] <- mapA (\p -> allocatePartyWithHint p (PartyIdHint p)) ["Bettor1","Bettor2","Bettor3"]
+
+    -- demo
+    return ()
+
+-- WITHOUT PARTY ALLOCATION
+demo = script do
+  
+  let
+    hostOperator = fromSome $ partyFromText "HKJC"
+    guestOperator = fromSome $ partyFromText "UKTote"
+    bettors@[bettor1,bettor2,bettor3] = map (\p -> fromSome $ partyFromText p) ["Bettor1","Bettor2","Bettor3"]
+    betRequest = BetRequest with 
+      betId = "BET1"
+      betCount = "1"
+      raceIds = [show RACE_1]
+      betType = show PLACE
+      betStatus = show New
+      betAmount = 10.0
+      payoutAmount = 0.0
+      currency = show GBP
+      betTime = time (date 2021 Dec 07) 10 0 0
+      -- selections = [Selection with selectionId = 1; raceId = show RACE_1; horseId = show HORSE_5]
+      selectionId = 1
+      selectionRaceId = show RACE_1
+      selectionHorseId = show HORSE_1
+      location = show UK
+      bettor = bettor1
+      hostOperator
+      guestOperator
+    
+  betRequest1 <- submit bettor1 do
+    createCmd betRequest
+
+  submit guestOperator do 
+    exerciseCmd betRequest1 Accept
+
+  betRequest2 <- submit bettor2 do
+    createCmd betRequest with betId = "BET2"; bettor = bettor2
+
+  submit guestOperator do 
+    exerciseCmd betRequest2 Accept
+
+  betRequest3 <- submit bettor3 do
+    createCmd betRequest with betId = "BET3"; bettor = bettor3
+
+  submit guestOperator do 
+    exerciseCmd betRequest3 Accept
+  
