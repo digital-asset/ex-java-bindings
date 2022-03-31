@@ -3,12 +3,18 @@
 
 package examples.pingpong.reactive;
 
-import com.daml.ledger.javaapi.data.*;
+import com.daml.ledger.api.v1.CommandsOuterClass.Command;
+import com.daml.ledger.api.v1.CommandsOuterClass.CreateCommand;
+import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
+import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
+import com.daml.ledger.api.v1.ValueOuterClass.Record;
+import com.daml.ledger.api.v1.ValueOuterClass.Value;
+import com.daml.ledger.javaapi.data.GetPackageResponse;
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.daml.ledger.rxjava.LedgerClient;
 import com.daml.ledger.rxjava.PackageClient;
-import com.digitalasset.daml_lf_1_8.DamlLf;
-import com.digitalasset.daml_lf_1_8.DamlLf1;
+import com.daml.daml_lf_1_14.DamlLf;
+import com.daml.daml_lf_1_14.DamlLf1;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.ProtocolStringList;
 import io.reactivex.Flowable;
@@ -17,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,13 +31,12 @@ public class PingPongReactiveMain {
 
     private final static Logger logger = LoggerFactory.getLogger(PingPongReactiveMain.class);
 
-
     // application id used for sending commands
     public static final String APP_ID = "PingPongApp";
 
     // constants for referring to the parties
-    public static final String ALICE = "Alice";
-    public static final String BOB = "Bob";
+    public static final String ALICE = "alice";
+    public static final String BOB = "bob";
 
     public static void main(String[] args) {
         // Extract host and port from arguments
@@ -50,13 +56,17 @@ public class PingPongReactiveMain {
         // Connects to the ledger and runs initial validation
         client.connect();
 
-        // inspect the packages on the ledger and extract the package id of the package containing the PingPong module
-        // this is helpful during development when the package id changes a lot due to frequent changes to the DAML code
-        String packageId = detectPingPongPackageId(client);
+        var users = client.getUserManagementClient().listUsers().blockingGet().getUsers();
 
-        Identifier pingIdentifier = new Identifier(packageId, "PingPong", "Ping");
-        Identifier pongIdentifier = new Identifier(packageId, "PingPong", "Pong");
-
+        // inspect the packages on the ledger and extract the package id of the package
+        // containing the PingPong module
+        // this is helpful during development when the package id changes a lot due to
+        // frequent changes to the DAML code
+        String packageId = Optional.ofNullable(System.getProperty("package.id")).orElseThrow(() -> new RuntimeException("package.id must be specified via sys properties"));
+        var pingIdentifier = com.daml.ledger.javaapi.data.Identifier.fromProto(Identifier.newBuilder()
+                .setPackageId(packageId).setModuleName("PingPong").setEntityName("Ping").build());
+        var pongIdentifier = com.daml.ledger.javaapi.data.Identifier.fromProto(Identifier.newBuilder()
+                .setPackageId(packageId).setModuleName("PingPong").setEntityName("Pong").build());
         // initialize the ping pong processors for Alice and Bob
         PingPongProcessor aliceProcessor = new PingPongProcessor(ALICE, client, pingIdentifier, pongIdentifier);
         PingPongProcessor bobProcessor = new PingPongProcessor(BOB, client, pingIdentifier, pongIdentifier);
@@ -66,9 +76,8 @@ public class PingPongReactiveMain {
         bobProcessor.runIndefinitely();
 
         // send the initial commands for both parties
-        createInitialContracts(client, ALICE, BOB, pingIdentifier, numInitialContracts);
-        createInitialContracts(client, BOB, ALICE, pingIdentifier, numInitialContracts);
-
+        createInitialContracts(client, ALICE, BOB, pingIdentifier.toProto(), numInitialContracts);
+        createInitialContracts(client, BOB, ALICE, pingIdentifier.toProto(), numInitialContracts);
 
         try {
             // wait a couple of seconds for the processing to finish
@@ -80,7 +89,8 @@ public class PingPongReactiveMain {
     }
 
     /**
-     * Creates numContracts number of Ping contracts. The sender is used as the submitting party.
+     * Creates numContracts number of Ping contracts. The sender is used as the
+     * submitting party.
      *
      * @param client         the {@link LedgerClient} object to use for services
      * @param sender         the party that sends the initial Ping contract
@@ -88,18 +98,28 @@ public class PingPongReactiveMain {
      * @param pingIdentifier the PingPong.Ping template identifier
      * @param numContracts   the number of initial contracts to create
      */
-    private static void createInitialContracts(LedgerClient client, String sender, String receiver, Identifier pingIdentifier, int numContracts) {
+    private static void createInitialContracts(LedgerClient client, String sender, String receiver,
+            Identifier pingIdentifier, int numContracts) {
 
         for (int i = 0; i < numContracts; i++) {
-            // command that creates the initial Ping contract with the required parameters according to the model
-            CreateCommand createCommand = new CreateCommand(pingIdentifier,
-                    new DamlRecord(
-                            pingIdentifier,
-                            new DamlRecord.Field("sender", new Party(sender)),
-                            new DamlRecord.Field("receiver", new Party(receiver)),
-                            new DamlRecord.Field("count", new Int64(0))
-                    )
-            );
+            // command that creates the initial Ping contract with the required parameters
+            // according to the model
+
+            Command createCommand = Command.newBuilder().setCreate(
+                    CreateCommand.newBuilder()
+                            .setTemplateId(pingIdentifier)
+                            .setCreateArguments(
+                                    Record.newBuilder()
+                                            // the identifier for a template's record is the same as the identifier for
+                                            // the template
+                                            .setRecordId(pingIdentifier)
+                                            .addFields(RecordField.newBuilder().setLabel("sender")
+                                                    .setValue(Value.newBuilder().setParty(sender)))
+                                            .addFields(RecordField.newBuilder().setLabel("receiver")
+                                                    .setValue(Value.newBuilder().setParty(receiver)))
+                                            .addFields(RecordField.newBuilder().setLabel("count")
+                                                    .setValue(Value.newBuilder().setInt64(0)))))
+                    .build();
 
             // asynchronously send the commands
             client.getCommandClient().submitAndWait(
@@ -107,73 +127,8 @@ public class PingPongReactiveMain {
                     APP_ID,
                     UUID.randomUUID().toString(),
                     sender,
-                    Collections.singletonList(createCommand))
+                    Collections.singletonList(com.daml.ledger.javaapi.data.Command.fromProtoCommand(createCommand)))
                     .blockingGet();
         }
-    }
-
-    /**
-     * Inspects all DAML packages that are registered on the ledger and returns the id of the package that contains the PingPong module.
-     * This is useful during development when the DAML model changes a lot, so that the package id doesn't need to be updated manually
-     * after each change.
-     *
-     * @param client the initialized client object
-     * @return the package id of the example DAML module
-     */
-    private static String detectPingPongPackageId(LedgerClient client) {
-        PackageClient packageService = client.getPackageClient();
-
-        // fetch a list of all package ids available on the ledger
-        Flowable<String> packagesIds = packageService.listPackages();
-
-        // fetch all packages and find the package that contains the PingPong module
-        String packageId = packagesIds
-                .flatMap(p -> packageService.getPackage(p).toFlowable())
-                .filter(PingPongReactiveMain::containsPingPongModule)
-                .map(GetPackageResponse::getHash)
-                .firstElement().blockingGet();
-
-        if (packageId == null) {
-            // No package on the ledger contained the PingPong module
-            throw new RuntimeException("Module PingPong is not available on the ledger");
-        }
-        return packageId;
-    }
-
-    private static boolean containsPingPongModule(GetPackageResponse getPackageResponse) {
-        try {
-            // parse the archive payload
-            DamlLf.ArchivePayload payload = DamlLf.ArchivePayload.parseFrom(getPackageResponse.getArchivePayload());
-            // get the DAML LF package
-            DamlLf1.Package lfPackage = payload.getDamlLf1();
-            // extract module names
-            List<DamlLf1.InternedDottedName> internedDottedNamesList =
-                    lfPackage.getInternedDottedNamesList();
-            ProtocolStringList internedStringsList = lfPackage.getInternedStringsList();
-
-            for (DamlLf1.Module module : lfPackage.getModulesList()) {
-                DamlLf1.DottedName name = null;
-                switch (module.getNameCase()) {
-                    case NAME_DNAME:
-                        name = module.getNameDname();
-                        break;
-                    case NAME_INTERNED_DNAME:
-                        List<Integer> nameIndexes = internedDottedNamesList.get(module.getNameInternedDname()).getSegmentsInternedStrList();
-                        List<String> nameSegments = nameIndexes.stream().map(internedStringsList::get).collect(Collectors.toList());
-                        name = DamlLf1.DottedName.newBuilder().addAllSegments(nameSegments).build();
-                        break;
-                    case NAME_NOT_SET:
-                        break;
-                }
-                if (name != null && name.getSegmentsList().size() == 1 && name.getSegmentsList().get(0).equals("PingPong")) {
-                    return true;
-                }
-            }
-
-        } catch (InvalidProtocolBufferException e) {
-            logger.error("Error parsing DAML-LF package", e);
-            throw new RuntimeException(e);
-        }
-        return false;
     }
 }
