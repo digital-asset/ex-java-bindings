@@ -10,6 +10,7 @@ import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
 import com.daml.ledger.api.v1.ValueOuterClass.Record;
 import com.daml.ledger.api.v1.ValueOuterClass.Value;
 import com.daml.ledger.javaapi.data.GetPackageResponse;
+import com.daml.ledger.javaapi.data.GetUserRequest;
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.daml.ledger.rxjava.LedgerClient;
 import com.daml.ledger.rxjava.PackageClient;
@@ -34,9 +35,9 @@ public class PingPongReactiveMain {
     // application id used for sending commands
     public static final String APP_ID = "PingPongApp";
 
-    // constants for referring to the parties
-    public static final String ALICE = "alice";
-    public static final String BOB = "bob";
+    // constants for referring to users with access to the parties
+    public static final String ALICE_USER = "alice";
+    public static final String BOB_USER = "bob";
 
     public static void main(String[] args) {
         // Extract host and port from arguments
@@ -56,7 +57,9 @@ public class PingPongReactiveMain {
         // Connects to the ledger and runs initial validation
         client.connect();
 
-        var users = client.getUserManagementClient().listUsers().blockingGet().getUsers();
+        var userManagementClient = client.getUserManagementClient();
+        String aliceParty = userManagementClient.getUser(new GetUserRequest(ALICE_USER)).blockingGet().getPrimaryParty().get();
+        String bobParty = userManagementClient.getUser(new GetUserRequest(BOB_USER)).blockingGet().getPrimaryParty().get();
 
         // inspect the packages on the ledger and extract the package id of the package
         // containing the PingPong module
@@ -68,16 +71,16 @@ public class PingPongReactiveMain {
         var pongIdentifier = com.daml.ledger.javaapi.data.Identifier.fromProto(Identifier.newBuilder()
                 .setPackageId(packageId).setModuleName("PingPong").setEntityName("Pong").build());
         // initialize the ping pong processors for Alice and Bob
-        PingPongProcessor aliceProcessor = new PingPongProcessor(ALICE, client, pingIdentifier, pongIdentifier);
-        PingPongProcessor bobProcessor = new PingPongProcessor(BOB, client, pingIdentifier, pongIdentifier);
+        PingPongProcessor aliceProcessor = new PingPongProcessor(aliceParty, client, pingIdentifier, pongIdentifier);
+        PingPongProcessor bobProcessor = new PingPongProcessor(bobParty, client, pingIdentifier, pongIdentifier);
 
         // start the processors asynchronously
         aliceProcessor.runIndefinitely();
         bobProcessor.runIndefinitely();
 
         // send the initial commands for both parties
-        createInitialContracts(client, ALICE, BOB, pingIdentifier.toProto(), numInitialContracts);
-        createInitialContracts(client, BOB, ALICE, pingIdentifier.toProto(), numInitialContracts);
+        createInitialContracts(client, aliceParty, bobParty, pingIdentifier.toProto(), numInitialContracts);
+        createInitialContracts(client, bobParty, aliceParty, pingIdentifier.toProto(), numInitialContracts);
 
         try {
             // wait a couple of seconds for the processing to finish

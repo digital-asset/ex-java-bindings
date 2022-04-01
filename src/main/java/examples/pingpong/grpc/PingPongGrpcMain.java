@@ -19,6 +19,10 @@ import com.daml.ledger.api.v1.PackageServiceOuterClass.GetPackageRequest;
 import com.daml.ledger.api.v1.PackageServiceOuterClass.GetPackageResponse;
 import com.daml.ledger.api.v1.PackageServiceOuterClass.ListPackagesRequest;
 import com.daml.ledger.api.v1.PackageServiceOuterClass.ListPackagesResponse;
+import com.daml.ledger.api.v1.admin.UserManagementServiceGrpc;
+import com.daml.ledger.api.v1.admin.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
+import com.daml.ledger.api.v1.admin.UserManagementServiceOuterClass.GetUserRequest;
+import com.daml.ledger.api.v1.admin.UserManagementServiceOuterClass.GetUserResponse;
 import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
 import com.daml.ledger.api.v1.ValueOuterClass.Record;
 import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
@@ -39,9 +43,9 @@ public class PingPongGrpcMain {
     // application id used for sending commands
     public static final String APP_ID = "PingPongApp";
 
-    // constants for referring to the parties
-    public static final String ALICE = "Alice";
-    public static final String BOB = "Bob";
+    // constants for referring to the users with access to the parties
+    public static final String ALICE_USER = "alice";
+    public static final String BOB_USER = "bob";
 
     public static void main(String[] args) {
         // Extract host and port from arguments
@@ -61,6 +65,10 @@ public class PingPongGrpcMain {
         // fetch the ledger ID, which is used in subsequent requests sent to the ledger
         String ledgerId = fetchLedgerId(channel);
 
+        // fetch the party IDs that got created in the Daml init script
+        String aliceParty = fetchPartyId(channel, ALICE_USER);
+        String bobParty = fetchPartyId(channel, BOB_USER);
+
         // inspect the packages on the ledger and extract the package id of the package containing the PingPong module
         // this is helpful during development when the package id changes a lot due to likely frequent changes to the DAML code
         String packageId = detectPingPongPackageId(channel, ledgerId);
@@ -77,21 +85,21 @@ public class PingPongGrpcMain {
                 .build();
 
         // initialize the ping pong processors for Alice and Bob
-        PingPongProcessor aliceProcessor = new PingPongProcessor(ALICE, ledgerId, channel, pingIdentifier, pongIdentifier);
-        PingPongProcessor bobProcessor = new PingPongProcessor(BOB, ledgerId, channel, pingIdentifier, pongIdentifier);
+        PingPongProcessor aliceProcessor = new PingPongProcessor(aliceParty, ledgerId, channel, pingIdentifier, pongIdentifier);
+        PingPongProcessor bobProcessor = new PingPongProcessor(bobParty, ledgerId, channel, pingIdentifier, pongIdentifier);
 
         // start the processors asynchronously
         aliceProcessor.runIndefinitely();
         bobProcessor.runIndefinitely();
 
         // send the initial commands for both parties
-        createInitialContracts(channel, ledgerId, ALICE, BOB, pingIdentifier, numInitialContracts);
-        createInitialContracts(channel, ledgerId, BOB, ALICE, pingIdentifier, numInitialContracts);
+        createInitialContracts(channel, ledgerId, aliceParty, bobParty, pingIdentifier, numInitialContracts);
+        createInitialContracts(channel, ledgerId, bobParty, aliceParty, pingIdentifier, numInitialContracts);
 
 
         try {
             // wait a couple of seconds for the processing to finish
-            Thread.sleep(5000);
+            Thread.sleep(15000);
             System.exit(0);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -151,6 +159,12 @@ public class PingPongGrpcMain {
         LedgerIdentityServiceBlockingStub ledgerIdService = LedgerIdentityServiceGrpc.newBlockingStub(channel);
         GetLedgerIdentityResponse identityResponse = ledgerIdService.getLedgerIdentity(GetLedgerIdentityRequest.getDefaultInstance());
         return identityResponse.getLedgerId();
+    }
+
+    private static String fetchPartyId(ManagedChannel channel, String userId) {
+        UserManagementServiceBlockingStub userManagementService = UserManagementServiceGrpc.newBlockingStub(channel);
+        GetUserResponse getUserResponse = userManagementService.getUser(GetUserRequest.newBuilder().setUserId(userId).build());
+        return getUserResponse.getUser().getPrimaryParty();
     }
 
 

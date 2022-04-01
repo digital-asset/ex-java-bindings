@@ -3,6 +3,7 @@
 
 lib/
 logs/
+log/
 target/
 **/navigator.log
 **/sandbox.log
