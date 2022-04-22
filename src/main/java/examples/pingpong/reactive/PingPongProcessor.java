@@ -5,7 +5,12 @@ package examples.pingpong.reactive;
 
 import com.daml.ledger.javaapi.data.*;
 import com.daml.ledger.rxjava.LedgerClient;
+import com.google.protobuf.Empty;
+
 import io.reactivex.Flowable;
+import io.reactivex.Single;
+import io.reactivex.subjects.SingleSubject;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +42,6 @@ public class PingPongProcessor {
 
     public void runIndefinitely() {
         // assemble the request for the transaction stream
-        logger.info("{} starts reading transactions.", party);
         Flowable<Transaction> transactions = client.getTransactionsClient().getTransactions(
                 LedgerOffset.LedgerEnd.getInstance(),
                 new FiltersByParty(Collections.singletonMap(party, NoFilter.instance)), true);
@@ -49,21 +53,22 @@ public class PingPongProcessor {
      *
      * @param tx the Transaction to process
      */
-    private void processTransaction(Transaction tx) {
+    private Single<Empty> processTransaction(Transaction tx) {
         List<Command> exerciseCommands = tx.getEvents().stream()
-                .filter(e -> e instanceof CreatedEvent).map(e -> (CreatedEvent) e)
+                .filter(e -> {
+                    return e instanceof CreatedEvent;
+                }).map(e -> (CreatedEvent) e)
                 .flatMap(e -> processEvent(tx.getWorkflowId(), e))
                 .collect(Collectors.toList());
 
         if (!exerciseCommands.isEmpty()) {
-            client.getCommandClient().submitAndWait(
+            return client.getCommandClient().submitAndWait(
                     tx.getWorkflowId(),
                     PingPongReactiveMain.APP_ID,
                     UUID.randomUUID().toString(),
                     party,
-                    exerciseCommands)
-                    .blockingGet();
-        }
+                    exerciseCommands);
+        } else return SingleSubject.create();
     }
 
     /**
