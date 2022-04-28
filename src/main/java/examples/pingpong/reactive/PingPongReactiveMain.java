@@ -3,30 +3,22 @@
 
 package examples.pingpong.reactive;
 
+import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
+
 import com.daml.ledger.api.v1.CommandsOuterClass.Command;
 import com.daml.ledger.api.v1.CommandsOuterClass.CreateCommand;
 import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
-import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
 import com.daml.ledger.api.v1.ValueOuterClass.Record;
+import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
 import com.daml.ledger.api.v1.ValueOuterClass.Value;
-import com.daml.ledger.javaapi.data.GetPackageResponse;
 import com.daml.ledger.javaapi.data.GetUserRequest;
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.daml.ledger.rxjava.LedgerClient;
-import com.daml.ledger.rxjava.PackageClient;
-import com.daml.daml_lf_1_14.DamlLf;
-import com.daml.daml_lf_1_14.DamlLf1;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.ProtocolStringList;
-import io.reactivex.Flowable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class PingPongReactiveMain {
 
@@ -58,8 +50,8 @@ public class PingPongReactiveMain {
         client.connect();
 
         var userManagementClient = client.getUserManagementClient();
-        String aliceParty = userManagementClient.getUser(new GetUserRequest(ALICE_USER)).blockingGet().getPrimaryParty().get();
-        String bobParty = userManagementClient.getUser(new GetUserRequest(BOB_USER)).blockingGet().getPrimaryParty().get();
+        String aliceParty = userManagementClient.getUser(new GetUserRequest(ALICE_USER)).blockingGet().getUser().getPrimaryParty().get();
+        String bobParty = userManagementClient.getUser(new GetUserRequest(BOB_USER)).blockingGet().getUser().getPrimaryParty().get();
 
         // inspect the packages on the ledger and extract the package id of the package
         // containing the PingPong module
