@@ -53,10 +53,6 @@ public class PingPongReactiveMain {
         String aliceParty = userManagementClient.getUser(new GetUserRequest(ALICE_USER)).blockingGet().getUser().getPrimaryParty().get();
         String bobParty = userManagementClient.getUser(new GetUserRequest(BOB_USER)).blockingGet().getUser().getPrimaryParty().get();
 
-        // inspect the packages on the ledger and extract the package id of the package
-        // containing the PingPong module
-        // this is helpful during development when the package id changes a lot due to
-        // frequent changes to the DAML code
         String packageId = Optional.ofNullable(System.getProperty("package.id")).orElseThrow(() -> new RuntimeException("package.id must be specified via sys properties"));
         var pingIdentifier = com.daml.ledger.javaapi.data.Identifier.fromProto(Identifier.newBuilder()
                 .setPackageId(packageId).setModuleName("PingPong").setEntityName("Ping").build());
