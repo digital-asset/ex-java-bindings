@@ -21,11 +21,6 @@
             <version>${sdk-version}</version>
         </dependency>
         <dependency>
-            <groupId>com.daml</groupId>
-            <artifactId>daml-lf-1.14-archive-java-proto</artifactId>
-            <version>${sdk-version}</version>
-        </dependency>
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>

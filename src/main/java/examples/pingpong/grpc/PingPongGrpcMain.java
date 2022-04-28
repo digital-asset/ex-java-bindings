@@ -3,6 +3,9 @@
 
 package examples.pingpong.grpc;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import com.daml.ledger.api.v1.CommandSubmissionServiceGrpc;
 import com.daml.ledger.api.v1.CommandSubmissionServiceGrpc.CommandSubmissionServiceFutureStub;
 import com.daml.ledger.api.v1.CommandSubmissionServiceOuterClass.SubmitRequest;
@@ -13,30 +16,17 @@ import com.daml.ledger.api.v1.LedgerIdentityServiceGrpc;
 import com.daml.ledger.api.v1.LedgerIdentityServiceGrpc.LedgerIdentityServiceBlockingStub;
 import com.daml.ledger.api.v1.LedgerIdentityServiceOuterClass.GetLedgerIdentityRequest;
 import com.daml.ledger.api.v1.LedgerIdentityServiceOuterClass.GetLedgerIdentityResponse;
-import com.daml.ledger.api.v1.PackageServiceGrpc;
-import com.daml.ledger.api.v1.PackageServiceGrpc.PackageServiceBlockingStub;
-import com.daml.ledger.api.v1.PackageServiceOuterClass.GetPackageRequest;
-import com.daml.ledger.api.v1.PackageServiceOuterClass.GetPackageResponse;
-import com.daml.ledger.api.v1.PackageServiceOuterClass.ListPackagesRequest;
-import com.daml.ledger.api.v1.PackageServiceOuterClass.ListPackagesResponse;
-import com.daml.ledger.api.v1.admin.UserManagementServiceGrpc;
-import com.daml.ledger.api.v1.admin.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
-import com.daml.ledger.api.v1.admin.UserManagementServiceOuterClass.GetUserRequest;
-import com.daml.ledger.api.v1.admin.UserManagementServiceOuterClass.GetUserResponse;
 import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
 import com.daml.ledger.api.v1.ValueOuterClass.Record;
 import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
 import com.daml.ledger.api.v1.ValueOuterClass.Value;
-import com.daml.daml_lf_1_14.DamlLf;
-import com.daml.daml_lf_1_14.DamlLf1;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.ProtocolStringList;
+import com.daml.ledger.api.v1.admin.UserManagementServiceGrpc;
+import com.daml.ledger.api.v1.admin.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
+import com.daml.ledger.api.v1.admin.UserManagementServiceOuterClass.GetUserRequest;
+import com.daml.ledger.api.v1.admin.UserManagementServiceOuterClass.GetUserResponse;
+
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class PingPongGrpcMain {
 
@@ -69,9 +59,12 @@ public class PingPongGrpcMain {
         String aliceParty = fetchPartyId(channel, ALICE_USER);
         String bobParty = fetchPartyId(channel, BOB_USER);
 
-        // inspect the packages on the ledger and extract the package id of the package containing the PingPong module
-        // this is helpful during development when the package id changes a lot due to likely frequent changes to the DAML code
-        String packageId = detectPingPongPackageId(channel, ledgerId);
+        // inspect the packages on the ledger and extract the package id of the package
+        // containing the PingPong module
+        // this is helpful during development when the package id changes a lot due to
+        // likely frequent changes to the DAML code
+        String packageId = Optional.ofNullable(System.getProperty("package.id"))
+                .orElseThrow(() -> new RuntimeException("package.id must be specified via sys properties"));
 
         Identifier pingIdentifier = Identifier.newBuilder()
                 .setPackageId(packageId)
@@ -166,62 +159,4 @@ public class PingPongGrpcMain {
         GetUserResponse getUserResponse = userManagementService.getUser(GetUserRequest.newBuilder().setUserId(userId).build());
         return getUserResponse.getUser().getPrimaryParty();
     }
-
-
-    /**
-     * Inspects all DAML packages that are registered on the ledger and returns the id of the package that contains the PingPong module.
-     * This is useful during development when the DAML model changes a lot, so that the package id doesn't need to be updated manually
-     * after each change.
-     *
-     * @param channel  the gRPC channel to use for services
-     * @param ledgerId the ledger id to use for requests
-     * @return the package id of the example DAML module
-     */
-    private static String detectPingPongPackageId(ManagedChannel channel, String ledgerId) {
-        PackageServiceBlockingStub packageService = PackageServiceGrpc.newBlockingStub(channel);
-
-        // fetch a list of all package ids available on the ledger
-        ListPackagesResponse packagesResponse = packageService.listPackages(ListPackagesRequest.newBuilder().setLedgerId(ledgerId).build());
-
-        // find the package that contains the PingPong module
-        for (String packageId : packagesResponse.getPackageIdsList()) {
-            GetPackageResponse getPackageResponse = packageService.getPackage(GetPackageRequest.newBuilder().setLedgerId(ledgerId).setPackageId(packageId).build());
-            try {
-                // parse the archive payload
-                DamlLf.ArchivePayload payload = DamlLf.ArchivePayload.parseFrom(getPackageResponse.getArchivePayload());
-                // get the DAML LF package
-                DamlLf1.Package lfPackage = payload.getDamlLf1();
-                // extract module names
-                List<DamlLf1.InternedDottedName> internedDottedNamesList =
-                        lfPackage.getInternedDottedNamesList();
-                ProtocolStringList internedStringsList = lfPackage.getInternedStringsList();
-
-                for (DamlLf1.Module module : lfPackage.getModulesList()) {
-                    DamlLf1.DottedName name = null;
-                    switch (module.getNameCase()) {
-                        case NAME_DNAME:
-                            name = module.getNameDname();
-                            break;
-                        case NAME_INTERNED_DNAME:
-                            List<Integer> nameIndexes = internedDottedNamesList.get(module.getNameInternedDname()).getSegmentsInternedStrList();
-                            List<String> nameSegments = nameIndexes.stream().map(internedStringsList::get).collect(Collectors.toList());
-                            name = DamlLf1.DottedName.newBuilder().addAllSegments(nameSegments).build();
-                            break;
-                        case NAME_NOT_SET:
-                            break;
-                    }
-                    if (name != null && name.getSegmentsList().size() == 1 && name.getSegmentsList().get(0).equals("PingPong")) {
-                        return packageId;
-                    }
-                }
-
-            } catch (InvalidProtocolBufferException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        }
-        // No package on the ledger contained the PingPong module
-        throw new RuntimeException("Module PingPong is not available on the ledger");
-    }
-
 }
