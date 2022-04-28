@@ -33,4 +33,6 @@ done
 
 # Run java program
 # mvn exec:java -Dexec.mainClass=examples.pingpong.grpc.PingPongGrpcMain -Dpackage.id=$packageId -Dexec.args="localhost 7600"
-mvn exec:java -Dexec.mainClass=examples.pingpong.reactive.PingPongReactiveMain -Dpackage.id=$packageId -Dexec.args="localhost 7600"
+# examples.pingpong.grpc.PingPongGrpcMain
+# examples.pingpong.reactive.PingPongReactiveMain
+mvn exec:java -Dexec.mainClass=$1 -Dpackage.id=$packageId -Dexec.args="localhost 7600"
