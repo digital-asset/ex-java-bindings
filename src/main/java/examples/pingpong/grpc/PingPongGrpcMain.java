@@ -59,10 +59,6 @@ public class PingPongGrpcMain {
         String aliceParty = fetchPartyId(channel, ALICE_USER);
         String bobParty = fetchPartyId(channel, BOB_USER);
 
-        // inspect the packages on the ledger and extract the package id of the package
-        // containing the PingPong module
-        // this is helpful during development when the package id changes a lot due to
-        // likely frequent changes to the DAML code
         String packageId = Optional.ofNullable(System.getProperty("package.id"))
                 .orElseThrow(() -> new RuntimeException("package.id must be specified via sys properties"));
 
