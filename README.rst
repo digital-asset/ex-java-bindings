@@ -31,35 +31,16 @@ To set a project up:
 
 #. If you do not have it already, install the DAML SDK by running::
 
-   curl https://get.daml.com | sh -s 1.0.0
+   curl https://get.daml.com | sh -s 2.1.0
 
-#. Build the Java code with `Maven <https://maven.apache.org/>`_ by running::
+#. Use the start script for starting a ledger & the java application:
 
-    mvn compile
-
-#. Start the sandbox by running::
-
-    daml start --sandbox-port 7600
-
-  Note: this will take over your terminal, until you press CTRL-C to kill the
-  sandbox. It will also open up your default web browser to show the Navigator,
-  which will allow you to observe the contracts getting created by running one
-  of the examples (see next step).
-
-#. Run the applications by running the following command, specifying the main class::
-
-    mvn exec:java \
-        -Dexec.mainClass=<mainClass> \
-        -Dexec.args="localhost 7600"
-
-  where <mainClass> is one of:
+  ./start.sh <mainClass>
 
   * examples.pingpong.grpc.PingPongGrpcMain
   * examples.pingpong.reactive.PingPongReactiveMain
 
-  depending on which example you wish to run. Note that if you want to run
-  multiple examples, you should start a new sandbox for each one, otherwise
-  they might interfere.
+  depending on which example you wish to run. The script will take care of stopping an already running sandbox & start a fresh one every call.
 
 Example Project -- Ping Pong with gRPC Bindings
 -----------------------------------------------

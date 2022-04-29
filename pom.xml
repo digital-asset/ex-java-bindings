@@ -9,20 +9,15 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <sdk-version>1.17.1</sdk-version>
+        <maven.compiler.source>1.10</maven.compiler.source>
+        <maven.compiler.target>1.10</maven.compiler.target>
+        <sdk-version>2.1.0</sdk-version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.daml</groupId>
             <artifactId>bindings-rxjava</artifactId>
-            <version>${sdk-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.daml</groupId>
-            <artifactId>daml-lf-1.8-archive-java-proto</artifactId>
             <version>${sdk-version}</version>
         </dependency>
         <dependency>
