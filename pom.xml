@@ -21,6 +21,11 @@
             <version>${sdk-version}</version>
         </dependency>
         <dependency>
+            <groupId>com.daml</groupId>
+            <artifactId>bindings-java</artifactId>
+            <version>${sdk-version}</version>
+        </dependency>
+        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.4.5</version>

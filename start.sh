@@ -14,8 +14,13 @@ function cleanup(){
 
 trap cleanup ERR EXIT
 
+echo "Compiling daml"
 daml build
 packageId=$(daml damlc inspect-dar --json .daml/dist/ex-java-bindings-0.0.2.dar | jq '.main_package_id' -r)
+
+
+echo "Generating java code"
+daml codegen java
 
 echo "Compiling code"
 mvn compile
