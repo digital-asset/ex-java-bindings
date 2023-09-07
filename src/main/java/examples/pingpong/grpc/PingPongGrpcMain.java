@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.grpc;
@@ -31,7 +31,7 @@ import io.grpc.ManagedChannelBuilder;
 public class PingPongGrpcMain {
 
     // application id used for sending commands
-    public static final String APP_ID = "PingPongApp";
+    public static final String APP_ID = "PingPongGrpcApp";
 
     // constants for referring to the users with access to the parties
     public static final String ALICE_USER = "alice";
