@@ -216,17 +216,8 @@ The ``codegen`` variant of the client application is similar to its ``grpc`` cou
 a traditional imperative style. What sets them apart is the usage of the generated data layer in the former.
 This layer simplifies construction of the ledger api calls and the analysis of the return values.
 
-- ``PingPongCodegenMain.createInitialContracts`` creates an strongly typed instance of a Ping contract and then
-embeds it in a equally strongly typed ``CommandsSubmission``. Then, it uses the built in ``toProto`` methods to
-convert the request into a wire-ready ``protobuf`` structure.
-- ``PingPongProcessor.runIndefinitely`` creates a per party inclusive filter by invoking a series of class
-constructors. Contrast this with the intricate process of defining a filter in the analogous method in the
-``grpc`` variant of the application.
-- ``PingPongProcessor.processEvent`` starts off by extracting common data fields from the ``grpc`` version of the
-received events, to be later used for logging purposes. Events are then converted to the corresponding data layer
-format and passed to the individual template handlers.
-- ``PingPongProcessor.processPingPong`` creates a strongly typed representation of the daml contracts by means of
-the daml contract companions. A strongly typed instance can be used to create a command representing a desired
-choice exercise.
-- ``PingPongProcessor.processTransaction`` is responsible for creating a ledger request enveloping the choice exercises
-and submitting it to the ledger.
+- ``PingPongCodegenMain.createInitialContracts`` creates an strongly typed instance of a Ping contract and then embeds it in a equally strongly typed ``CommandsSubmission``. Then, it uses the built in ``toProto`` methods to convert the request into a wire-ready ``protobuf`` structure.
+- ``PingPongProcessor.runIndefinitely`` creates a per party inclusive filter by invoking a series of class constructors. Contrast this with the intricate process of defining a filter in the analogous method in the ``grpc`` variant of the application.
+- ``PingPongProcessor.processEvent`` starts off by extracting common data fields from the ``grpc`` version of the received events, to be later used for logging purposes. Events are then converted to the corresponding data layer format and passed to the individual template handlers.
+- ``PingPongProcessor.processPingPong`` creates a strongly typed representation of the daml contracts by means of the daml contract companions. A strongly typed instance can be used to create a command representing a desired choice exercise.
+- ``PingPongProcessor.processTransaction`` is responsible for creating a ledger request enveloping the choice exercises and submitting it to the ledger.
