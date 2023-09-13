@@ -19,6 +19,10 @@ import com.daml.ledger.javaapi.data.SubmitRequest;
 import examples.pingpong.codegen.pingpong.Ping;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+
 
 import java.util.List;
 import java.util.UUID;
@@ -42,10 +46,17 @@ public class PingPongCodegenMain {
         int port = Integer.parseInt(args[1]);
 
         // each party will create this number of initial Ping contracts
-        int numInitialContracts = args.length == 3 ? Integer.parseInt(args[2]) : 10;
+        int numInitialContracts = args.length == 3 ? Integer.parseInt(args[2]) : 1;
+
+        // Initialize open telemetry
+        OpenTelemetryUtil openTelemetry = new OpenTelemetryUtil(APP_ID);
 
         // Initialize a plaintext gRPC channel
-        ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
+        ManagedChannel channel = ManagedChannelBuilder
+                .forAddress(host, port)
+                .usePlaintext()
+                .intercept(openTelemetry.getClientInterceptor())
+                .build();
 
         // fetch the ledger ID, which is used in subsequent requests sent to the ledger
         String ledgerId = fetchLedgerId(channel);
@@ -55,16 +66,16 @@ public class PingPongCodegenMain {
         String bobParty = fetchPartyId(channel, BOB_USER);
 
         // initialize the ping pong processors for Alice and Bob
-        PingPongProcessor aliceProcessor = new PingPongProcessor(aliceParty, ledgerId, channel);
-        PingPongProcessor bobProcessor = new PingPongProcessor(bobParty, ledgerId, channel);
+        PingPongProcessor aliceProcessor = new PingPongProcessor(aliceParty, ledgerId, channel, openTelemetry);
+        PingPongProcessor bobProcessor = new PingPongProcessor(bobParty, ledgerId, channel, openTelemetry);
 
         // start the processors asynchronously
         aliceProcessor.runIndefinitely();
         bobProcessor.runIndefinitely();
 
         // send the initial commands for both parties
-        createInitialContracts(channel, ledgerId, aliceParty, bobParty, numInitialContracts);
-        createInitialContracts(channel, ledgerId, bobParty, aliceParty, numInitialContracts);
+        createInitialContracts(channel, ledgerId, aliceParty, bobParty, numInitialContracts, openTelemetry.getTracer());
+        createInitialContracts(channel, ledgerId, bobParty, aliceParty, numInitialContracts, openTelemetry.getTracer());
 
 
         try {
@@ -85,7 +96,7 @@ public class PingPongCodegenMain {
      * @param receiver       the party that receives the initial Ping contract
      * @param numContracts   the number of initial contracts to create
      */
-    private static void createInitialContracts(ManagedChannel channel, String ledgerId, String sender, String receiver, int numContracts) {
+    private static void createInitialContracts(ManagedChannel channel, String ledgerId, String sender, String receiver, int numContracts, Tracer tracer) {
         CommandSubmissionServiceFutureStub submissionService = CommandSubmissionServiceGrpc.newFutureStub(channel);
 
         for (int i = 0; i < numContracts; i++) {
@@ -104,7 +115,12 @@ public class PingPongCodegenMain {
             // convert the command submission to a proto data structure
             final var request = SubmitRequest.toProto(ledgerId, commandsSubmission);
             // asynchronously send the request
-            submissionService.submit(request);
+            Span span = tracer.spanBuilder("createInitialContracts").startSpan();
+            try(Scope ignored = span.makeCurrent()) {
+                submissionService.submit(request);
+            } finally {
+                span.end();
+            }
         }
     }
 
@@ -125,4 +141,6 @@ public class PingPongCodegenMain {
         GetUserResponse getUserResponse = userManagementService.getUser(GetUserRequest.newBuilder().setUserId(userId).build());
         return getUserResponse.getUser().getPrimaryParty();
     }
+
+
 }

@@ -18,6 +18,9 @@ import examples.pingpong.codegen.pingpong.Ping;
 import examples.pingpong.codegen.pingpong.Pong;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 
 import java.util.List;
 import java.util.Map;
@@ -41,13 +44,16 @@ public class PingPongProcessor {
     private final Identifier pingIdentifier;
     private final Identifier pongIdentifier;
 
-    public PingPongProcessor(String party, String ledgerId, ManagedChannel channel) {
+    private final OpenTelemetryUtil openTelemetry;
+
+    public PingPongProcessor(String party, String ledgerId, ManagedChannel channel, OpenTelemetryUtil openTelemetry) {
         this.party = party;
         this.ledgerId = ledgerId;
         this.transactionService = TransactionServiceGrpc.newStub(channel);
         this.submissionService = CommandSubmissionServiceGrpc.newBlockingStub(channel);
         this.pingIdentifier = Ping.TEMPLATE_ID;
         this.pongIdentifier = Pong.TEMPLATE_ID;
+        this.openTelemetry = openTelemetry;
     }
 
     public void runIndefinitely() {
@@ -92,9 +98,11 @@ public class PingPongProcessor {
      * @param tx the Transaction to process
      */
     private void processTransaction(Transaction tx) {
+        Context extractedContext = openTelemetry.contextFromDamlTraceContext(tx.getTraceContext());
+        Span extractedSpan = Span.fromContext(extractedContext);
         List<Command> commands = tx.getEventsList().stream()
                 .filter(Event::hasCreated).map(Event::getCreated)
-                .flatMap(e -> processEvent(tx.getWorkflowId(), e))
+                .flatMap(e -> processEvent(tx.getWorkflowId(), tx.getTraceContext().getTraceparent().getValue(), e))
                 .collect(Collectors.toList());
 
         if (!commands.isEmpty()) {
@@ -105,7 +113,14 @@ public class PingPongProcessor {
                     .withActAs(List.of(party))
                     .withReadAs(List.of(party))
                     .withWorkflowId(tx.getWorkflowId());
-            submissionService.submit(SubmitRequest.toProto(ledgerId, commandsSubmission));
+            Scope scope = extractedContext.makeCurrent();
+            Span span = openTelemetry.getTracer().spanBuilder("follow").startSpan();
+            try(Scope ignored2 = span.makeCurrent()) {
+                submissionService.submit(SubmitRequest.toProto(ledgerId, commandsSubmission));
+            } finally {
+                span.end();
+            }
+            scope.close();
         }
     }
 
@@ -119,7 +134,7 @@ public class PingPongProcessor {
      * @return an empty <code>Stream</code> if this event doesn't trigger any action for this {@link PingPongProcessor}'s
      * party
      */
-    private Stream<Command> processEvent(String workflowId, EventOuterClass.CreatedEvent protoEvent) {
+    private Stream<Command> processEvent(String workflowId, String traceparent, EventOuterClass.CreatedEvent protoEvent) {
         String templateName = protoEvent.getTemplateId().getEntityName();
         Map<String, ValueOuterClass.Value> fields = protoEvent
                 .getCreateArguments()
@@ -137,7 +152,7 @@ public class PingPongProcessor {
         String choice = isPing ? "RespondPong" : "RespondPing";
 
         Long count = fields.get("count").getInt64();
-        System.out.printf("%s is exercising %s on %s in workflow %s at count %d\n", party, choice, contractId, workflowId, count);
+        System.out.printf("%s is exercising %s on %s in workflow %s at count %d and traceparent %s\n", party, choice, contractId, workflowId, count, traceparent);
 
         final var event = CreatedEvent.fromProto(protoEvent);
 
