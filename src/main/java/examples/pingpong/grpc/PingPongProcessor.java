@@ -1,4 +1,4 @@
-// Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.grpc;
@@ -14,6 +14,7 @@ import com.daml.ledger.api.v1.EventOuterClass.Event;
 import com.daml.ledger.api.v1.LedgerOffsetOuterClass.LedgerOffset;
 import com.daml.ledger.api.v1.LedgerOffsetOuterClass.LedgerOffset.LedgerBoundary;
 import com.daml.ledger.api.v1.TransactionFilterOuterClass.Filters;
+import com.daml.ledger.api.v1.TransactionFilterOuterClass.InclusiveFilters;
 import com.daml.ledger.api.v1.TransactionFilterOuterClass.TransactionFilter;
 import com.daml.ledger.api.v1.TransactionOuterClass.Transaction;
 import com.daml.ledger.api.v1.TransactionServiceGrpc;
@@ -57,12 +58,21 @@ public class PingPongProcessor {
     }
 
     public void runIndefinitely() {
+        // restrict the subscription to ping and pong template types through an inclusive filter
+        final var filtersByParty = TransactionFilter.newBuilder()
+                .putFiltersByParty(party,
+                        Filters.newBuilder()
+                                .setInclusive(
+                                        InclusiveFilters.newBuilder()
+                                                .addTemplateIds(pingIdentifier)
+                                                .addTemplateIds(pongIdentifier)
+                                                .build())
+                                .build());
         // assemble the request for the transaction stream
         GetTransactionsRequest transactionsRequest = GetTransactionsRequest.newBuilder()
                 .setLedgerId(ledgerId)
                 .setBegin(LedgerOffset.newBuilder().setBoundary(LedgerBoundary.LEDGER_BEGIN))
-                // we use the default filter since we don't want to filter out any contracts
-                .setFilter(TransactionFilter.newBuilder().putFiltersByParty(party, Filters.getDefaultInstance()))
+                .setFilter(filtersByParty)
                 .setVerbose(true)
                 .build();
 

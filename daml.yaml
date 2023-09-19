@@ -1,4 +1,4 @@
-# Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+# Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 sdk-version: 2.7.0
@@ -10,3 +10,7 @@ dependencies:
 - daml-prim
 - daml-stdlib
 - daml-script
+codegen:
+  java:
+    package-prefix: examples.pingpong.codegen
+    output-directory: src/main/java/
