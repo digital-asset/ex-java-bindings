@@ -1,5 +1,5 @@
-Java Bindings Example
----------------------
+Java Bindings Ping-Pong Example
+-------------------------------
 
 ::
 
@@ -31,7 +31,7 @@ To set a project up:
 
 #. If you do not have it already, install the DAML SDK by running::
 
-   curl https://get.daml.com | sh -s 2.1.0
+   curl https://get.daml.com | sh -s 2.8.0
 
 #. Use the start script for starting a ledger & the java application:
 
