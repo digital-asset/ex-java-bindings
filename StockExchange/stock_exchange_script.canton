@@ -1,0 +1,26 @@
+nodes.local.start()
+
+val javaBindingsDarPath = ".daml/dist/ex-java-bindings-stock-exchange-0.0.1.dar"
+
+stockExchangeParticipant.domains.connect_local(mydomain)
+bankParticipant.domains.connect_local(mydomain)
+buyerParticipant.domains.connect_local(mydomain)
+sellerParticipant.domains.connect_local(mydomain)
+
+stockExchangeParticipant.dars.upload(javaBindingsDarPath)
+bankParticipant.dars.upload(javaBindingsDarPath)
+buyerParticipant.dars.upload(javaBindingsDarPath)
+sellerParticipant.dars.upload(javaBindingsDarPath)
+
+val stockExchange = stockExchangeParticipant.parties.enable("stockExchange")
+val bank = bankParticipant.parties.enable("bank")
+val buyer = buyerParticipant.parties.enable("buyer")
+val seller = sellerParticipant.parties.enable("seller")
+
+println("Sleeping 10 seconds")
+Thread.sleep(10000)
+
+stockExchangeParticipant.ledger_api.users.create("StockExchange", actAs = Set(stockExchange), primaryParty = Some(stockExchange))
+bankParticipant.ledger_api.users.create("Bank", actAs = Set(bank), primaryParty = Some(bank))
+buyerParticipant.ledger_api.users.create("Buyer", actAs = Set(buyer), primaryParty = Some(buyer))
+sellerParticipant.ledger_api.users.create("Seller", actAs = Set(seller), primaryParty = Some(seller))

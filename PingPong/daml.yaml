@@ -1,0 +1,16 @@
+# Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+sdk-version: 2.7.0
+name: ex-java-bindings
+source: daml/PingPong.daml
+init-script: PingPong:setup
+version: 0.0.2
+dependencies:
+- daml-prim
+- daml-stdlib
+- daml-script
+codegen:
+  java:
+    package-prefix: examples.pingpong.codegen
+    output-directory: src/main/java/

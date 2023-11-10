@@ -1,0 +1,52 @@
+-- Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+-- SPDX-License-Identifier: Apache-2.0
+
+module PingPong where
+
+import Daml.Script
+
+template Ping
+  with
+    sender: Party
+    receiver: Party
+    count: Int
+  where
+    signatory sender
+    observer receiver
+
+    choice RespondPong : ()
+      controller receiver
+      do
+        if count > 10 then return ()
+        else do
+          create Pong with sender = receiver; receiver = sender; count = count + 1
+          return ()
+
+template Pong
+  with
+    sender: Party
+    receiver: Party
+    count: Int
+  where
+    signatory sender
+    observer receiver
+
+    choice RespondPing : ()
+      controller receiver
+      do
+        if count > 10 then return ()
+        else do
+          create Ping with sender = receiver; receiver = sender; count = count + 1
+          return ()
+
+setup : Script()
+setup = script do
+  -- Set up parties
+  alice <- allocatePartyWithHint "Alice" (PartyIdHint "Alice")
+  bob <- allocatePartyWithHint "Bob" (PartyIdHint "Bob")
+
+  -- Needed in 2.0, see https://docs.daml.com/tools/navigator/index.html
+  aliceId <- validateUserId "alice"
+  bobId <- validateUserId "bob"
+  createUser (User aliceId (Some alice)) [CanActAs alice]
+  createUser (User bobId (Some bob)) [CanActAs bob]

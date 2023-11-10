@@ -1,8 +1,9 @@
-# Copyright (c) 2019, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+# Copyright (c) 2020, Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 
 lib/
 logs/
+log/
 target/
 **/navigator.log
 **/sandbox.log
@@ -13,3 +14,4 @@ navigator.history
 .idea/
 example-ping-pong-java.iml
 .vscode/settings.json
+.daml
