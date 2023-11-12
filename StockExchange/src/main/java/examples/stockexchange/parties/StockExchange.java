@@ -15,7 +15,7 @@ public class StockExchange extends Party {
     super(ledgerApiPort, "StockExchange");
   }
 
-  public Stock.ContractId issueStock(String stockName, String ownerPartyId) {
+  public void issueStock(String stockName, String ownerPartyId) {
     CommandsSubmission commandsSubmission =
         CommandsSubmission.create(
                 APP_ID,
@@ -25,17 +25,11 @@ public class StockExchange extends Party {
                     .commands())
             .withWorkflowId("Stock-issue")
             .withActAs(participantSession.getPartyId());
-    String protoContractId =
         participantSession
             .getDamlLedgerClient()
             .getCommandClient()
-            .submitAndWaitForTransaction(commandsSubmission)
-            .blockingGet()
-            .getEvents()
-            .get(0)
-            .getContractId();
-
-    return new Stock.ContractId(protoContractId);
+            .submitAndWait(commandsSubmission)
+            .blockingGet();
   }
 
   public void emitPriceQuotation(String stockName, Long value) {

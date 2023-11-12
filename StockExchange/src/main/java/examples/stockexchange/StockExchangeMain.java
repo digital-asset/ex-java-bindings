@@ -1,12 +1,10 @@
 package examples.stockexchange;
 
-import examples.codegen.stockexchange.IOU;
-import examples.codegen.stockexchange.Stock;
+import com.daml.ledger.javaapi.data.*;
 import examples.stockexchange.parties.Bank;
 import examples.stockexchange.parties.Buyer;
 import examples.stockexchange.parties.Seller;
 import examples.stockexchange.parties.StockExchange;
-import com.daml.ledger.javaapi.data.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,16 +25,16 @@ public class StockExchangeMain {
     String stockId = "Daml";
 
     logger.info("STEP 1: The Bank issues the IOU to the Buyer");
-    IOU.ContractId iouCid = bank.issueIou(buyer.getPartyId(), 10L);
+    bank.issueIou(buyer.getPartyId(), 10L);
 
     logger.info("STEP 2a: The StockExchange issues the Stock with stockId `Daml` to the party Seller");
-    Stock.ContractId stockContractId = stockExchange.issueStock(stockId, seller.getPartyId());
+    stockExchange.issueStock(stockId, seller.getPartyId());
 
     logger.info("STEP 2b: The StockExchange emits a price quotation for the `Daml` stockId");
     stockExchange.emitPriceQuotation(stockId, 3L);
 
     logger.info("STEP 3: The Seller announces its intention to sell is stock by creating an Offer contract");
-    seller.announceStockSaleOffer(stockExchange.getPartyId(), stockContractId);
+    seller.announceStockSaleOffer(stockExchange.getPartyId());
 
     logger.info("STEP 4: The stakeholder parties are fetching their contracts for off-ledger " +
             "sharing to enable ANY buyer to accept the exchange");
@@ -46,7 +44,7 @@ public class StockExchangeMain {
 
     logger.info("STEP 5: The Buyer uses the provided disclosed contracts as attachments to the command submission " +
             "in which it accepts the offer and seals the exchange");
-    buyer.buyStock(priceQuotation, offer, stock, iouCid);
+    buyer.buyStock(priceQuotation, offer, stock);
 
     logger.info("Exchange executed successfully");
   }

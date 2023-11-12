@@ -11,7 +11,7 @@ public class Bank extends Party {
     super(ledgerApiPort, "Bank");
   }
 
-  public IOU.ContractId issueIou(String partyId, Long value) {
+  public void issueIou(String partyId, Long value) {
     CommandsSubmission commandsSubmission =
         CommandsSubmission.create(
                 Utils.APP_ID,
@@ -19,14 +19,11 @@ public class Bank extends Party {
                 new IOU(participantSession.getPartyId(), partyId, value).create().commands())
             .withWorkflowId("Bank-issue-IOU")
             .withActAs(participantSession.getPartyId());
-    return new IOU.ContractId(
+
         participantSession
             .getDamlLedgerClient()
             .getCommandClient()
-            .submitAndWaitForTransaction(commandsSubmission)
-            .blockingGet()
-            .getEvents()
-            .get(0)
-            .getContractId());
+            .submitAndWait(commandsSubmission)
+            .blockingGet();
   }
 }
