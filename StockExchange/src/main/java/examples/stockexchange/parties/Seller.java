@@ -5,9 +5,9 @@ import examples.codegen.stockexchange.Offer;
 import examples.codegen.stockexchange.Stock;
 import examples.stockexchange.Common;
 import examples.stockexchange.ParticipantSession;
-
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,35 +31,36 @@ public class Seller {
     }
   }
 
-  private static void announceStockSaleOffer(String stockExchangePartyId, ParticipantSession participantSession) throws IOException {
+  private static void announceStockSaleOffer(
+      String stockExchangePartyId, ParticipantSession participantSession) throws IOException {
     logger.info("SELLER: Fetching contract-id of owned Stock");
+    FiltersByParty getStockAcsFilter =
+        new FiltersByParty(
+            Collections.singletonMap(
+                participantSession.getPartyId(),
+                new InclusiveFilter(
+                    Collections.emptyMap(),
+                    Collections.singletonMap(
+                        Stock.TEMPLATE_ID, Filter.Template.HIDE_CREATED_EVENT_BLOB))));
+
     Stock.ContractId stockCid =
         new Stock.ContractId(
             participantSession
                 .getDamlLedgerClient()
                 .getActiveContractSetClient()
-                .getActiveContracts(
-                    new FiltersByParty(
-                        Collections.singletonMap(
-                            participantSession.getPartyId(),
-                            new InclusiveFilter(
-                                Collections.emptyMap(),
-                                Collections.singletonMap(
-                                    Stock.TEMPLATE_ID,
-                                    Filter.Template.HIDE_CREATED_EVENT_BLOB)))),
-                    false)
+                .getActiveContracts(getStockAcsFilter, false)
                 .blockingFirst()
                 .getCreatedEvents()
                 .get(0)
                 .getContractId());
 
+    List<Command> createOfferCommand =
+        new Offer(participantSession.getPartyId(), stockExchangePartyId, stockCid)
+            .create()
+            .commands();
+
     CommandsSubmission commandsSubmission =
-        CommandsSubmission.create(
-                Common.APP_ID,
-                UUID.randomUUID().toString(),
-                new Offer(participantSession.getPartyId(), stockExchangePartyId, stockCid)
-                    .create()
-                    .commands())
+        CommandsSubmission.create(Common.APP_ID, UUID.randomUUID().toString(), createOfferCommand)
             .withWorkflowId("Seller-Offer")
             .withActAs(participantSession.getPartyId());
 

@@ -1,9 +1,11 @@
 package examples.stockexchange.parties;
 
+import com.daml.ledger.javaapi.data.Command;
 import com.daml.ledger.javaapi.data.CommandsSubmission;
 import examples.codegen.stockexchange.IOU;
 import examples.stockexchange.Common;
 import examples.stockexchange.ParticipantSession;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +31,10 @@ public class Bank {
 
   private static void issueIou(
       ParticipantSession participantSession, String buyerPartyId, long issuedIouValue) {
+    List<Command> newIouCommand =
+        new IOU(participantSession.getPartyId(), buyerPartyId, issuedIouValue).create().commands();
     CommandsSubmission commandsSubmission =
-        CommandsSubmission.create(
-                Common.APP_ID,
-                UUID.randomUUID().toString(),
-                new IOU(participantSession.getPartyId(), buyerPartyId, issuedIouValue)
-                    .create()
-                    .commands())
+        CommandsSubmission.create(Common.APP_ID, UUID.randomUUID().toString(), newIouCommand)
             .withWorkflowId("Bank-issue-IOU")
             .withActAs(participantSession.getPartyId());
 

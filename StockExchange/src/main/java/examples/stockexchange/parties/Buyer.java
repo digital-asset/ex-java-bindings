@@ -31,20 +31,21 @@ public class Buyer {
 
   private static void acceptOffer(ParticipantSession participantSession) throws IOException {
     logger.info("BUYER: Fetching contract-id of owned IOU");
+    FiltersByParty getIousAcsFilter =
+        new FiltersByParty(
+            Collections.singletonMap(
+                participantSession.getPartyId(),
+                new InclusiveFilter(
+                    Collections.emptyMap(),
+                    Collections.singletonMap(
+                        IOU.TEMPLATE_ID, Filter.Template.HIDE_CREATED_EVENT_BLOB))));
+
     IOU.ContractId iouCid =
         new IOU.ContractId(
             participantSession
                 .getDamlLedgerClient()
                 .getActiveContractSetClient()
-                .getActiveContracts(
-                    new FiltersByParty(
-                        Collections.singletonMap(
-                            participantSession.getPartyId(),
-                            new InclusiveFilter(
-                                Collections.emptyMap(),
-                                Collections.singletonMap(
-                                    IOU.TEMPLATE_ID, Filter.Template.HIDE_CREATED_EVENT_BLOB)))),
-                    false)
+                .getActiveContracts(getIousAcsFilter, false)
                 .blockingFirst()
                 .getCreatedEvents()
                 .get(0)
@@ -61,16 +62,17 @@ public class Buyer {
     disclosedContracts.add(offer);
     disclosedContracts.add(stock);
 
+    List<Command> exerciseAcceptOfferCommand =
+        new Offer.ContractId(offer.contractId)
+            .exerciseOffer_Accept(
+                new PriceQuotation.ContractId(priceQuotation.contractId),
+                participantSession.getPartyId(),
+                iouCid)
+            .commands();
+
     CommandsSubmission commandsSubmission =
         CommandsSubmission.create(
-                Common.APP_ID,
-                UUID.randomUUID().toString(),
-                new Offer.ContractId(offer.contractId)
-                    .exerciseOffer_Accept(
-                        new PriceQuotation.ContractId(priceQuotation.contractId),
-                        participantSession.getPartyId(),
-                        iouCid)
-                    .commands())
+                Common.APP_ID, UUID.randomUUID().toString(), exerciseAcceptOfferCommand)
             .withWorkflowId("Buyer-buy-stock")
             .withDisclosedContracts(disclosedContracts)
             .withActAs(participantSession.getPartyId());

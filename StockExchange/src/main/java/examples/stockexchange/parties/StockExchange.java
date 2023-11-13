@@ -3,6 +3,7 @@ package examples.stockexchange.parties;
 import static examples.stockexchange.Common.APP_ID;
 import static examples.stockexchange.Common.fetchContractForDisclosure;
 
+import com.daml.ledger.javaapi.data.Command;
 import com.daml.ledger.javaapi.data.CommandsSubmission;
 import com.daml.ledger.javaapi.data.DisclosedContract;
 import examples.codegen.stockexchange.PriceQuotation;
@@ -10,6 +11,7 @@ import examples.codegen.stockexchange.Stock;
 import examples.stockexchange.Common;
 import examples.stockexchange.ParticipantSession;
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,13 +43,13 @@ public class StockExchange {
       long issuedStockPriceQuotation,
       ParticipantSession participantSession)
       throws IOException {
+    List<Command> createStockCommand =
+        new Stock(participantSession.getPartyId(), sellerPartyId, issuedStockName)
+            .create()
+            .commands();
+
     CommandsSubmission issueStockSubmission =
-        CommandsSubmission.create(
-                APP_ID,
-                UUID.randomUUID().toString(),
-                new Stock(participantSession.getPartyId(), sellerPartyId, issuedStockName)
-                    .create()
-                    .commands())
+        CommandsSubmission.create(APP_ID, UUID.randomUUID().toString(), createStockCommand)
             .withWorkflowId("Stock-issue")
             .withActAs(participantSession.getPartyId());
 
@@ -58,14 +60,14 @@ public class StockExchange {
         .submitAndWait(issueStockSubmission)
         .blockingGet();
 
+    List<Command> createPriceQuotationCommand =
+        new PriceQuotation(
+                participantSession.getPartyId(), issuedStockName, issuedStockPriceQuotation)
+            .create()
+            .commands();
+
     CommandsSubmission emitPriceQuotationSubmission =
-        CommandsSubmission.create(
-                APP_ID,
-                UUID.randomUUID().toString(),
-                new PriceQuotation(
-                        participantSession.getPartyId(), issuedStockName, issuedStockPriceQuotation)
-                    .create()
-                    .commands())
+        CommandsSubmission.create(APP_ID, UUID.randomUUID().toString(), createPriceQuotationCommand)
             .withWorkflowId("PriceQuotation-issue")
             .withActAs(participantSession.getPartyId());
 
