@@ -24,6 +24,9 @@ function start_canton() {
 
 function run_stock_exchange() {
   echo "Running StockExchange"
-  mvn exec:java -Dexec.mainClass=examples.stockexchange.StockExchangeMain
+  mvn exec:java -Dexec.mainClass=examples.stockexchange.parties.Bank
+  mvn exec:java -Dexec.mainClass=examples.stockexchange.parties.StockExchange
+  mvn exec:java -Dexec.mainClass=examples.stockexchange.parties.Seller
+  mvn exec:java -Dexec.mainClass=examples.stockexchange.parties.Buyer
   echo "Finished StockExchange example"
 }

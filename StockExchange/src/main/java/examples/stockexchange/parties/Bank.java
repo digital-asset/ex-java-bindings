@@ -2,28 +2,40 @@ package examples.stockexchange.parties;
 
 import com.daml.ledger.javaapi.data.CommandsSubmission;
 import examples.codegen.stockexchange.IOU;
-import examples.stockexchange.Party;
-import examples.stockexchange.Utils;
+import examples.stockexchange.Common;
+import examples.stockexchange.ParticipantSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.UUID;
 
-public class Bank extends Party {
-  public Bank(int ledgerApiPort) {
-    super(ledgerApiPort, "Bank");
-  }
+public class Bank {
+  private static final Logger logger = LoggerFactory.getLogger(Bank.class);
+  public static void main(String[] args) throws Exception {
+    logger.info("BANK: Initializing");
+    Common.PartyParticipantSetup participantSetup = Common.PartyParticipantSetup.BANK;
+    try (ParticipantSession participantSession =
+        new ParticipantSession(participantSetup.getLedgerApiPort(), participantSetup.getUserId())) {
+      String buyerPartyId =
+          Common.readPartyId(Common.PartyParticipantSetup.BUYER.getPartyDisplayName());
 
-  public void issueIou(String partyId, Long value) {
-    CommandsSubmission commandsSubmission =
-        CommandsSubmission.create(
-                Utils.APP_ID,
-                UUID.randomUUID().toString(),
-                new IOU(participantSession.getPartyId(), partyId, value).create().commands())
-            .withWorkflowId("Bank-issue-IOU")
-            .withActAs(participantSession.getPartyId());
+      long issuedIouValue = 10L;
+      CommandsSubmission commandsSubmission =
+          CommandsSubmission.create(
+                  Common.APP_ID,
+                  UUID.randomUUID().toString(),
+                  new IOU(participantSession.getPartyId(), buyerPartyId, issuedIouValue).create().commands())
+              .withWorkflowId("Bank-issue-IOU")
+              .withActAs(participantSession.getPartyId());
 
-        participantSession
-            .getDamlLedgerClient()
-            .getCommandClient()
-            .submitAndWait(commandsSubmission)
-            .blockingGet();
+      logger.info("BANK: Issuing IOU with value {} to {}", issuedIouValue, buyerPartyId);
+      participantSession
+          .getDamlLedgerClient()
+          .getCommandClient()
+          .submitAndWait(commandsSubmission)
+          .blockingGet();
+
+      logger.info("BANK: Done");
+    }
   }
 }
