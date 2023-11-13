@@ -15,3 +15,5 @@ navigator.history
 example-ping-pong-java.iml
 .vscode/settings.json
 **/.daml
+StockExchange/temp_stock_exchange_example
+StockExchange/src/main/java/examples/codegen

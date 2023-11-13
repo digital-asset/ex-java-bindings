@@ -10,12 +10,12 @@ import java.util.Optional;
 
 public class Common {
   public static final String APP_ID = "StockExchangeApp";
-  public static final String STOCK_NAME = "Daml";
   public static final String PRICE_QUOTATION_DISCLOSED_CONTRACT_FILE =
-      "price_quotation_disclosed_contract.txt";
-  public static final String STOCK_DISCLOSED_CONTRACT_FILE = "stock_disclosed_contract.txt";
-  public static final String OFFER_DISCLOSED_CONTRACT_FILE = "offer_disclosed_contract.txt";
-  private static final String PARTIES_FILE_NAME = "stock_exchange_parties.txt";
+      "temp_stock_exchange_example/price_quotation_disclosed_contract.txt";
+  public static final String STOCK_DISCLOSED_CONTRACT_FILE =
+      "temp_stock_exchange_example/stock_disclosed_contract.txt";
+  public static final String OFFER_DISCLOSED_CONTRACT_FILE =
+      "temp_stock_exchange_example/offer_disclosed_contract.txt";
 
   public static DisclosedContract fetchContractForDisclosure(
       DamlLedgerClient client, String reader, Identifier templateId) {
@@ -67,51 +67,6 @@ public class Common {
               })
           .orElseThrow(
               () -> new IllegalArgumentException(String.format("File %s was empty", fileName)));
-    }
-  }
-
-  public static String readPartyId(String partyDisplayName) throws IOException {
-    try (FileReader fr = new FileReader(PARTIES_FILE_NAME);
-        BufferedReader br = new BufferedReader(fr)) {
-      String line = br.readLine();
-
-      while (line != null) {
-        String[] splitted = line.split("=");
-        if (splitted[0].equals(partyDisplayName)) return splitted[1];
-        line = br.readLine();
-      }
-
-      throw new IllegalArgumentException(
-          String.format("Not found party with userId %s", partyDisplayName));
-    }
-  }
-
-  public enum PartyParticipantSetup {
-    STOCK_EXCHANGE("StockExchange", "stockExchange", 5011),
-    BANK("Bank", "bank", 5021),
-    BUYER("Buyer", "buyer", 5031),
-    SELLER("Seller", "seller", 5041);
-
-    private final String userId;
-    private final int ledgerApiPort;
-    private final String partyDisplayName;
-
-    PartyParticipantSetup(String userId, String partyDisplayName, int ledgerApiPort) {
-      this.userId = userId;
-      this.partyDisplayName = partyDisplayName;
-      this.ledgerApiPort = ledgerApiPort;
-    }
-
-    public int getLedgerApiPort() {
-      return ledgerApiPort;
-    }
-
-    public String getUserId() {
-      return userId;
-    }
-
-    public String getPartyDisplayName() {
-      return partyDisplayName;
     }
   }
 }
