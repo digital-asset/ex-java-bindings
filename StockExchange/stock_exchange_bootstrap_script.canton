@@ -1,0 +1,39 @@
+import java.nio.file.{Paths, Files, StandardOpenOption}
+import java.nio.charset.StandardCharsets
+
+nodes.local.start()
+
+val javaBindingsDarPath = ".daml/dist/ex-java-bindings-stock-exchange-0.0.1.dar"
+
+stockExchangeParticipant.domains.connect_local(mydomain)
+bankParticipant.domains.connect_local(mydomain)
+buyerParticipant.domains.connect_local(mydomain)
+sellerParticipant.domains.connect_local(mydomain)
+
+stockExchangeParticipant.dars.upload(javaBindingsDarPath)
+bankParticipant.dars.upload(javaBindingsDarPath)
+buyerParticipant.dars.upload(javaBindingsDarPath)
+sellerParticipant.dars.upload(javaBindingsDarPath)
+
+val stockExchange = stockExchangeParticipant.parties.enable("stockExchange")
+val bank = bankParticipant.parties.enable("bank")
+val buyer = buyerParticipant.parties.enable("buyer")
+val seller = sellerParticipant.parties.enable("seller")
+
+// Write party ids to a file for allowing easy discovery
+val partiesFileContent = s"${stockExchange.toPrim}\n${bank.toPrim}\n${buyer.toPrim}\n${seller.toPrim}"
+Files.createDirectories(Paths.get("temp_stock_exchange_example"));
+Files.write(Paths.get("temp_stock_exchange_example/stock_exchange_parties.txt"), partiesFileContent.getBytes(StandardCharsets.UTF_8))
+
+println("Waiting for the parties to appear on their hosting participants' Ledger API...")
+utils.retry_until_true(buyerParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("buyer::")))
+utils.retry_until_true(sellerParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("seller::")))
+utils.retry_until_true(bankParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("bank::")))
+utils.retry_until_true(stockExchangeParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("stockExchange::")))
+
+stockExchangeParticipant.ledger_api.users.create("StockExchange", actAs = Set(stockExchange), primaryParty = Some(stockExchange))
+bankParticipant.ledger_api.users.create("Bank", actAs = Set(bank), primaryParty = Some(bank))
+buyerParticipant.ledger_api.users.create("Buyer", actAs = Set(buyer), primaryParty = Some(buyer))
+sellerParticipant.ledger_api.users.create("Seller", actAs = Set(seller), primaryParty = Some(seller))
+
+println("Canton server initialization DONE")
