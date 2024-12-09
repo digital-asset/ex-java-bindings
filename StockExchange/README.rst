@@ -3,7 +3,7 @@ Example of Explicit Disclosure with Java Bindings
 
 ::
 
-  Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+  Copyright (c) 2024 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
   SPDX-License-Identifier: Apache-2.0.0
 
 This project demonstrates the usage of `Explicit Contract Disclosure <https://docs.daml.com/app-dev/explicit-contract-disclosure.html>`_
@@ -49,6 +49,10 @@ Running the example
 #. In the other terminal, start the Canton ledger and wait for initialization until the process prints *Canton server initialization DONE*
 
    start_canton <path_to_canton_installation>
+
+#. In the first terminal, upload the package to all participant nodes
+
+   upload_package
 
 #. In the first terminal, run the example
 

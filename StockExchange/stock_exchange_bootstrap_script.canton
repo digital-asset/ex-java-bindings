@@ -21,15 +21,15 @@ val buyer = buyerParticipant.parties.enable("buyer")
 val seller = sellerParticipant.parties.enable("seller")
 
 // Write party ids to a file for allowing easy discovery
-val partiesFileContent = s"${stockExchange.toPrim}\n${bank.toPrim}\n${buyer.toPrim}\n${seller.toPrim}"
+val partiesFileContent = s"${stockExchange.toProtoPrimitive}\n${bank.toProtoPrimitive}\n${buyer.toProtoPrimitive}\n${seller.toProtoPrimitive}"
 Files.createDirectories(Paths.get("temp_stock_exchange_example"));
 Files.write(Paths.get("temp_stock_exchange_example/stock_exchange_parties.txt"), partiesFileContent.getBytes(StandardCharsets.UTF_8))
 
 println("Waiting for the parties to appear on their hosting participants' Ledger API...")
-utils.retry_until_true(buyerParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("buyer::")))
-utils.retry_until_true(sellerParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("seller::")))
-utils.retry_until_true(bankParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("bank::")))
-utils.retry_until_true(stockExchangeParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("stockExchange::")))
+utils.retry_until_true(buyerParticipant.ledger_api.parties.list().exists(_.party.toProtoPrimitive.toString.startsWith("buyer::")))
+utils.retry_until_true(sellerParticipant.ledger_api.parties.list().exists(_.party.toProtoPrimitive.toString.startsWith("seller::")))
+utils.retry_until_true(bankParticipant.ledger_api.parties.list().exists(_.party.toProtoPrimitive.toString.startsWith("bank::")))
+utils.retry_until_true(stockExchangeParticipant.ledger_api.parties.list().exists(_.party.toProtoPrimitive.toString.startsWith("stockExchange::")))
 
 stockExchangeParticipant.ledger_api.users.create("StockExchange", actAs = Set(stockExchange), primaryParty = Some(stockExchange))
 bankParticipant.ledger_api.users.create("Bank", actAs = Set(bank), primaryParty = Some(bank))

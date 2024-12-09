@@ -5,13 +5,13 @@
     <groupId>com.daml.ledger.examples</groupId>
     <artifactId>example-ping-pong-java</artifactId>
     <packaging>jar</packaging>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <sdk-version>2.7.0</sdk-version>
+        <sdk-version>2.10.0-snapshot.20241106.13056.0.v910c3af2</sdk-version>
     </properties>
 
     <dependencies>
