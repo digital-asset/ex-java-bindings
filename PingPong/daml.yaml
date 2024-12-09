@@ -14,3 +14,5 @@ codegen:
   java:
     package-prefix: examples.pingpong.codegen
     output-directory: src/main/java/
+build-options:
+  - --target=1.17

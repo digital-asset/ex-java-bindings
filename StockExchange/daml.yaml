@@ -12,3 +12,5 @@ codegen:
   java:
     package-prefix: examples.codegen
     output-directory: src/main/java/
+build-options:
+  - --target=1.17
