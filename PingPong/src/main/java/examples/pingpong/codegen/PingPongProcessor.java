@@ -33,7 +33,6 @@ import java.util.stream.Stream;
 public class PingPongProcessor {
 
     private final String party;
-    private final String ledgerId;
 
     private final TransactionServiceStub transactionService;
     private final CommandSubmissionServiceBlockingStub submissionService;
@@ -41,9 +40,8 @@ public class PingPongProcessor {
     private final Identifier pingIdentifier;
     private final Identifier pongIdentifier;
 
-    public PingPongProcessor(String party, String ledgerId, ManagedChannel channel) {
+    public PingPongProcessor(String party, ManagedChannel channel) {
         this.party = party;
-        this.ledgerId = ledgerId;
         this.transactionService = TransactionServiceGrpc.newStub(channel);
         this.submissionService = CommandSubmissionServiceGrpc.newBlockingStub(channel);
         this.pingIdentifier = Ping.TEMPLATE_ID;
@@ -58,8 +56,8 @@ public class PingPongProcessor {
         final var filtersByParty = new FiltersByParty(Map.of(party, inclusiveFilter));
         // assemble the request for the transaction stream
         final var getTransactionsRequest = new GetTransactionsRequest(
-                ledgerId,
-                LedgerOffset.LedgerBegin.getInstance(),
+                "",
+                LedgerOffset.LedgerEnd.getInstance(),
                 filtersByParty,
                 true
         );
@@ -105,7 +103,7 @@ public class PingPongProcessor {
                     .withActAs(List.of(party))
                     .withReadAs(List.of(party))
                     .withWorkflowId(tx.getWorkflowId());
-            submissionService.submit(SubmitRequest.toProto(ledgerId, commandsSubmission));
+            submissionService.submit(SubmitRequest.toProto("", commandsSubmission));
         }
     }
 
