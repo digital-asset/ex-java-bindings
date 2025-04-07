@@ -3,7 +3,7 @@ Example of Explicit Disclosure with Java Bindings
 
 ::
 
-  Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+  Copyright (c) 2025 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
   SPDX-License-Identifier: Apache-2.0.0
 
 This project demonstrates the usage of `Explicit Contract Disclosure <https://docs.daml.com/app-dev/explicit-contract-disclosure.html>`_

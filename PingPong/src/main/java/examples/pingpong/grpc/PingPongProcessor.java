@@ -1,30 +1,30 @@
-// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2025 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.grpc;
 
-import com.daml.ledger.api.v1.CommandSubmissionServiceGrpc;
-import com.daml.ledger.api.v1.CommandSubmissionServiceGrpc.CommandSubmissionServiceBlockingStub;
-import com.daml.ledger.api.v1.CommandSubmissionServiceOuterClass.SubmitRequest;
-import com.daml.ledger.api.v1.CommandsOuterClass.Command;
-import com.daml.ledger.api.v1.CommandsOuterClass.Commands;
-import com.daml.ledger.api.v1.CommandsOuterClass.ExerciseCommand;
-import com.daml.ledger.api.v1.EventOuterClass.CreatedEvent;
-import com.daml.ledger.api.v1.EventOuterClass.Event;
-import com.daml.ledger.api.v1.LedgerOffsetOuterClass.LedgerOffset;
-import com.daml.ledger.api.v1.LedgerOffsetOuterClass.LedgerOffset.LedgerBoundary;
-import com.daml.ledger.api.v1.TransactionFilterOuterClass.Filters;
-import com.daml.ledger.api.v1.TransactionFilterOuterClass.InclusiveFilters;
-import com.daml.ledger.api.v1.TransactionFilterOuterClass.TransactionFilter;
-import com.daml.ledger.api.v1.TransactionOuterClass.Transaction;
-import com.daml.ledger.api.v1.TransactionServiceGrpc;
-import com.daml.ledger.api.v1.TransactionServiceGrpc.TransactionServiceStub;
-import com.daml.ledger.api.v1.TransactionServiceOuterClass.GetTransactionsRequest;
-import com.daml.ledger.api.v1.TransactionServiceOuterClass.GetTransactionsResponse;
-import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
-import com.daml.ledger.api.v1.ValueOuterClass.Record;
-import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
-import com.daml.ledger.api.v1.ValueOuterClass.Value;
+import com.daml.ledger.api.v2.CommandSubmissionServiceGrpc;
+import com.daml.ledger.api.v2.CommandSubmissionServiceGrpc.CommandSubmissionServiceBlockingStub;
+import com.daml.ledger.api.v2.CommandSubmissionServiceOuterClass.SubmitRequest;
+import com.daml.ledger.api.v2.CommandsOuterClass.Command;
+import com.daml.ledger.api.v2.CommandsOuterClass.Commands;
+import com.daml.ledger.api.v2.CommandsOuterClass.ExerciseCommand;
+import com.daml.ledger.api.v2.EventOuterClass.CreatedEvent;
+import com.daml.ledger.api.v2.EventOuterClass.Event;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.Filters;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.CumulativeFilter;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.TransactionFilter;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.TemplateFilter;
+import com.daml.ledger.api.v2.TransactionOuterClass.Transaction;
+import com.daml.ledger.api.v2.UpdateServiceGrpc;
+import com.daml.ledger.api.v2.UpdateServiceGrpc.UpdateServiceStub;
+import com.daml.ledger.api.v2.UpdateServiceOuterClass.GetUpdatesRequest;
+import com.daml.ledger.api.v2.UpdateServiceOuterClass.GetUpdatesResponse;
+import com.daml.ledger.api.v2.ValueOuterClass.Identifier;
+import com.daml.ledger.api.v2.ValueOuterClass.Record;
+import com.daml.ledger.api.v2.ValueOuterClass.RecordField;
+import com.daml.ledger.api.v2.ValueOuterClass.Value;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 
@@ -40,47 +40,56 @@ import java.util.stream.Stream;
 public class PingPongProcessor {
 
     private final String party;
-    private final String ledgerId;
 
-    private final TransactionServiceStub transactionService;
+    private final UpdateServiceStub transactionService;
     private final CommandSubmissionServiceBlockingStub submissionService;
 
     private final Identifier pingIdentifier;
     private final Identifier pongIdentifier;
 
-    public PingPongProcessor(String party, String ledgerId, ManagedChannel channel, Identifier pingIdentifier, Identifier pongIdentifier) {
+    public PingPongProcessor(String party, ManagedChannel channel, Identifier pingIdentifier, Identifier pongIdentifier) {
         this.party = party;
-        this.ledgerId = ledgerId;
-        this.transactionService = TransactionServiceGrpc.newStub(channel);
+        this.transactionService = UpdateServiceGrpc.newStub(channel);
         this.submissionService = CommandSubmissionServiceGrpc.newBlockingStub(channel);
         this.pingIdentifier = pingIdentifier;
         this.pongIdentifier = pongIdentifier;
     }
 
+    private CumulativeFilter newTemplate(Identifier identifier){
+        return CumulativeFilter
+                .newBuilder()
+                .setTemplateFilter(
+                        TemplateFilter
+                                .newBuilder()
+                                .setTemplateId(identifier)
+                                .build()
+                )
+                .build();
+    }
+
     public void runIndefinitely() {
         // restrict the subscription to ping and pong template types through an inclusive filter
         final var filtersByParty = TransactionFilter.newBuilder()
-                .putFiltersByParty(party,
-                        Filters.newBuilder()
-                                .setInclusive(
-                                        InclusiveFilters.newBuilder()
-                                                .addTemplateIds(pingIdentifier)
-                                                .addTemplateIds(pongIdentifier)
-                                                .build())
-                                .build());
+                .putFiltersByParty(
+                        party,
+                        Filters
+                                .newBuilder()
+                                .addCumulative(newTemplate(pingIdentifier))
+                                .addCumulative(newTemplate(pongIdentifier))
+                                .build(
+                        )).build();
         // assemble the request for the transaction stream
-        GetTransactionsRequest transactionsRequest = GetTransactionsRequest.newBuilder()
-                .setLedgerId(ledgerId)
-                .setBegin(LedgerOffset.newBuilder().setBoundary(LedgerBoundary.LEDGER_BEGIN))
+        GetUpdatesRequest transactionsRequest = GetUpdatesRequest.newBuilder()
+                .setBeginExclusive(0L)
                 .setFilter(filtersByParty)
                 .setVerbose(true)
                 .build();
 
         // this StreamObserver reacts to transactions and prints a message if an error occurs or the stream gets closed
-        StreamObserver<GetTransactionsResponse> transactionObserver = new StreamObserver<GetTransactionsResponse>() {
+        StreamObserver<GetUpdatesResponse> transactionObserver = new StreamObserver<GetUpdatesResponse>() {
             @Override
-            public void onNext(GetTransactionsResponse value) {
-                value.getTransactionsList().forEach(PingPongProcessor.this::processTransaction);
+            public void onNext(GetUpdatesResponse value) {
+                if(value.hasTransaction()) processTransaction(value.getTransaction());
             }
 
             @Override
@@ -95,7 +104,7 @@ public class PingPongProcessor {
             }
         };
         System.out.printf("%s starts reading transactions.\n", party);
-        transactionService.getTransactions(transactionsRequest, transactionObserver);
+        transactionService.getUpdates(transactionsRequest, transactionObserver);
     }
 
     /**
@@ -114,9 +123,8 @@ public class PingPongProcessor {
                     .setCommands(Commands.newBuilder()
                             .setCommandId(UUID.randomUUID().toString())
                             .setWorkflowId(tx.getWorkflowId())
-                            .setLedgerId(ledgerId)
-                            .setParty(party)
-                            .setApplicationId(PingPongGrpcMain.APP_ID)
+                            .addActAs(party)
+                            .setUserId(PingPongGrpcMain.APP_ID)
                             .addAllCommands(commands)
                             .build())
                     .build();

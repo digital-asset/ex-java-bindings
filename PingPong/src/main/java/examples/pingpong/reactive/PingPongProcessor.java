@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2025 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.reactive;
@@ -26,7 +26,6 @@ public class PingPongProcessor {
     private static final Logger logger = LoggerFactory.getLogger(PingPongProcessor.class);
 
     private final String party;
-    private final String ledgerId;
     private LedgerClient client;
 
     private final Identifier pingIdentifier;
@@ -34,7 +33,6 @@ public class PingPongProcessor {
 
     public PingPongProcessor(String party, LedgerClient client, Identifier pingIdentifier, Identifier pongIdentifier) {
         this.party = party;
-        this.ledgerId = client.getLedgerId();
         this.client = client;
         this.pingIdentifier = pingIdentifier;
         this.pongIdentifier = pongIdentifier;
@@ -43,8 +41,10 @@ public class PingPongProcessor {
     public void runIndefinitely() {
         // assemble the request for the transaction stream
         Flowable<Transaction> transactions = client.getTransactionsClient().getTransactions(
-                LedgerOffset.LedgerEnd.getInstance(),
-                new FiltersByParty(Collections.singletonMap(party, NoFilter.instance)), true);
+                0L,
+                Optional.empty(),
+                new TransactionFilter(Collections.singletonMap(party, NoFilter.instance), Optional.empty()),
+                true);
         transactions.forEach(this::processTransaction);
     }
 
@@ -53,7 +53,7 @@ public class PingPongProcessor {
      *
      * @param tx the Transaction to process
      */
-    private Single<Empty> processTransaction(Transaction tx) {
+    private Single<String> processTransaction(Transaction tx) {
         List<Command> exerciseCommands = tx.getEvents().stream()
                 .filter(e -> {
                     return e instanceof CreatedEvent;
@@ -63,11 +63,15 @@ public class PingPongProcessor {
 
         if (!exerciseCommands.isEmpty()) {
             return client.getCommandClient().submitAndWait(
-                    tx.getWorkflowId(),
-                    PingPongReactiveMain.APP_ID,
-                    UUID.randomUUID().toString(),
-                    party,
-                    exerciseCommands);
+                    CommandsSubmission.create(
+                            PingPongReactiveMain.APP_ID,
+                            UUID.randomUUID().toString(),
+                            "",
+                            exerciseCommands
+                    )
+                    .withActAs(List.of(party))
+                    .withWorkflowId(tx.getWorkflowId())
+            );
         } else return SingleSubject.create();
     }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2025 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.reactive;
@@ -7,12 +7,13 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.daml.ledger.api.v1.CommandsOuterClass.Command;
-import com.daml.ledger.api.v1.CommandsOuterClass.CreateCommand;
-import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
-import com.daml.ledger.api.v1.ValueOuterClass.Record;
-import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
-import com.daml.ledger.api.v1.ValueOuterClass.Value;
+import com.daml.ledger.api.v2.CommandsOuterClass.Command;
+import com.daml.ledger.api.v2.CommandsOuterClass.CreateCommand;
+import com.daml.ledger.api.v2.ValueOuterClass.Identifier;
+import com.daml.ledger.api.v2.ValueOuterClass.Record;
+import com.daml.ledger.api.v2.ValueOuterClass.RecordField;
+import com.daml.ledger.api.v2.ValueOuterClass.Value;
+import com.daml.ledger.javaapi.data.CommandsSubmission;
 import com.daml.ledger.javaapi.data.GetUserRequest;
 import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.daml.ledger.rxjava.LedgerClient;
@@ -114,11 +115,14 @@ public class PingPongReactiveMain {
 
             // asynchronously send the commands
             client.getCommandClient().submitAndWait(
-                    String.format("Ping-%s-%d", sender, i),
-                    APP_ID,
-                    UUID.randomUUID().toString(),
-                    sender,
-                    Collections.singletonList(com.daml.ledger.javaapi.data.Command.fromProtoCommand(createCommand)))
+                            CommandsSubmission.create(
+                                    APP_ID,
+                                    UUID.randomUUID().toString(),
+                                    "",
+                                    Collections.singletonList(com.daml.ledger.javaapi.data.Command.fromProtoCommand(createCommand))
+                            )
+                            .withWorkflowId(String.format("Ping-%s-%d", sender, i))
+                            .withActAs(sender))
                     .blockingGet();
         }
     }
