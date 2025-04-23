@@ -111,7 +111,7 @@ public class PingPongProcessor {
             CommandsSubmission commandsSubmission = CommandsSubmission.create(
                             PingPongCodegenMain.APP_ID,
                             UUID.randomUUID().toString(),
-                            "",
+                            Optional.empty(),
                             commands)
                     .withActAs(List.of(party))
                     .withReadAs(List.of(party))

@@ -118,7 +118,7 @@ public class PingPongReactiveMain {
                             CommandsSubmission.create(
                                     APP_ID,
                                     UUID.randomUUID().toString(),
-                                    "",
+                                    Optional.empty(),
                                     Collections.singletonList(com.daml.ledger.javaapi.data.Command.fromProtoCommand(createCommand))
                             )
                             .withWorkflowId(String.format("Ping-%s-%d", sender, i))

@@ -66,7 +66,7 @@ public class PingPongProcessor {
                     CommandsSubmission.create(
                             PingPongReactiveMain.APP_ID,
                             UUID.randomUUID().toString(),
-                            "",
+                            Optional.empty(),
                             exerciseCommands
                     )
                     .withActAs(List.of(party))

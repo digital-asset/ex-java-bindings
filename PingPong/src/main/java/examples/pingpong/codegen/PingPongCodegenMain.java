@@ -17,6 +17,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class PingPongCodegenMain {
@@ -88,7 +89,7 @@ public class PingPongCodegenMain {
             CommandsSubmission commandsSubmission = CommandsSubmission.create(
                     APP_ID,
                     UUID.randomUUID().toString(),
-                    "",
+                    Optional.empty(),
                     createCommands)
                     .withActAs(List.of(sender))
                     .withReadAs(List.of(sender))

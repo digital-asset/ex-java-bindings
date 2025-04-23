@@ -5,11 +5,13 @@ function getSandboxPid(){
     ss -lptn 'sport = :7575' | grep -P -o '(?<=pid=)([0-9]+)'
 }
 function cleanup(){
+    echo "Cleaning up"
     sandboxPID=$(ss -lptn 'sport = :7575' | grep -P -o '(?<=pid=)([0-9]+)')
     if [[ $sandboxPID ]]; then
         # kill the sandbox which is running in the background
         kill $sandboxPID
         rm ports.json
+        echo "Done"
     fi
 }
 
