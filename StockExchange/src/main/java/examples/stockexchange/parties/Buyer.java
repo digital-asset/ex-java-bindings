@@ -31,18 +31,6 @@ public class Buyer {
     }
   }
 
-  private static TransactionFilterOuterClass.CumulativeFilter newTemplate(ValueOuterClass.Identifier identifier){
-    return TransactionFilterOuterClass.CumulativeFilter
-            .newBuilder()
-            .setTemplateFilter(
-                    TransactionFilterOuterClass.TemplateFilter
-                            .newBuilder()
-                            .setTemplateId(identifier)
-                            .build()
-            )
-            .build();
-  }
-
   private static void acceptOffer(ParticipantSession participantSession) throws IOException {
     logger.info("BUYER: Fetching contract-id of owned IOU");
     StateClient stateClient = participantSession

@@ -20,8 +20,8 @@ public class Common {
 
   public static <Ct> DisclosedContract fetchContractForDisclosure(
       DamlLedgerClient client, String reader, ContractFilter<Ct> contractFilter) {
-    final var ledgerEnd = client.getStateClient().getLedgerEnd().blockingGet();
-    final var eventFormat = contractFilter.withIncludeCreatedEventBlob(true).eventFormat(Optional.of(Set.of(reader)));
+    Long ledgerEnd = client.getStateClient().getLedgerEnd().blockingGet();
+    EventFormat eventFormat = contractFilter.withIncludeCreatedEventBlob(true).eventFormat(Optional.of(Set.of(reader)));
     CreatedEvent event =
         client
             .getStateClient()
