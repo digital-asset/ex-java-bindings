@@ -36,7 +36,8 @@ where this example's flow is also presented in more detail.
 Running the example
 ===================
 
-#. If you do not have it already, download and unzip `Canton open-source <https://github.com/digital-asset/daml/releases/download/v2.8.0/canton-open-source-2.8.0.tar.gz>`_  or a later version into a location of your choice.
+#. If you do not have it already, download and unzip `Canton open-source <https://github.com/digital-asset/daml/releases/download/v3.3.0-snapshot.20250402.0/canton-open-source-3.3.0-snapshot.20250401.15649.0.v76ec6d6b.tar.gz
+>`_  or a later version into a location of your choice.
 
 #. Use the setup script for exposing the bash example utility functions in two shell terminal windows
 

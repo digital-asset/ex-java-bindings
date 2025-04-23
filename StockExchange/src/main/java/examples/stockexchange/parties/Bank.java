@@ -6,6 +6,7 @@ import examples.codegen.stockexchange.IOU;
 import examples.stockexchange.Common;
 import examples.stockexchange.ParticipantSession;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ public class Bank {
     List<Command> newIouCommand =
         new IOU(participantSession.getPartyId(), buyerPartyId, issuedIouValue).create().commands();
     CommandsSubmission commandsSubmission =
-        CommandsSubmission.create(Common.APP_ID, UUID.randomUUID().toString(), newIouCommand)
+        CommandsSubmission.create(Common.APP_ID, UUID.randomUUID().toString(), Optional.empty(), newIouCommand)
             .withWorkflowId("Bank-issue-IOU")
             .withActAs(participantSession.getPartyId());
 

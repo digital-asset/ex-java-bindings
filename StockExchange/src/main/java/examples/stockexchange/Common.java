@@ -7,6 +7,7 @@ import java.io.*;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 
 public class Common {
   public static final String APP_ID = "StockExchangeApp";
@@ -17,23 +18,18 @@ public class Common {
   public static final String OFFER_DISCLOSED_CONTRACT_FILE =
       "temp_stock_exchange_example/offer_disclosed_contract.txt";
 
-  public static DisclosedContract fetchContractForDisclosure(
-      DamlLedgerClient client, String reader, Identifier templateId) {
+  public static <Ct> DisclosedContract fetchContractForDisclosure(
+      DamlLedgerClient client, String reader, ContractFilter<Ct> contractFilter) {
+    final var ledgerEnd = client.getStateClient().getLedgerEnd().blockingGet();
+    final var eventFormat = contractFilter.withIncludeCreatedEventBlob(true).eventFormat(Optional.of(Set.of(reader)));
     CreatedEvent event =
         client
-            .getActiveContractSetClient()
-            .getActiveContracts(
-                new FiltersByParty(
-                    Collections.singletonMap(
-                        reader,
-                        new InclusiveFilter(
-                            Collections.emptyMap(),
-                            Collections.singletonMap(
-                                templateId, Filter.Template.INCLUDE_CREATED_EVENT_BLOB)))),
-                false)
+            .getStateClient()
+            .getActiveContracts(eventFormat, ledgerEnd)
             .blockingFirst()
-            .getCreatedEvents()
-            .get(0);
+            .getContractEntry()
+            .get()
+            .getCreatedEvent();
     return new DisclosedContract(
         event.getTemplateId(), event.getContractId(), event.getCreatedEventBlob());
   }

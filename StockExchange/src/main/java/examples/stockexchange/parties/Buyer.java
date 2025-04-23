@@ -1,15 +1,17 @@
 package examples.stockexchange.parties;
 
+import com.daml.ledger.api.v2.TransactionFilterOuterClass;
+import com.daml.ledger.api.v2.ValueOuterClass;
 import com.daml.ledger.javaapi.data.*;
+import com.daml.ledger.rxjava.StateClient;
 import examples.codegen.stockexchange.IOU;
 import examples.codegen.stockexchange.Offer;
 import examples.codegen.stockexchange.PriceQuotation;
 import examples.stockexchange.Common;
 import examples.stockexchange.ParticipantSession;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,27 +31,37 @@ public class Buyer {
     }
   }
 
+  private static TransactionFilterOuterClass.CumulativeFilter newTemplate(ValueOuterClass.Identifier identifier){
+    return TransactionFilterOuterClass.CumulativeFilter
+            .newBuilder()
+            .setTemplateFilter(
+                    TransactionFilterOuterClass.TemplateFilter
+                            .newBuilder()
+                            .setTemplateId(identifier)
+                            .build()
+            )
+            .build();
+  }
+
   private static void acceptOffer(ParticipantSession participantSession) throws IOException {
     logger.info("BUYER: Fetching contract-id of owned IOU");
-    FiltersByParty getIousAcsFilter =
-        new FiltersByParty(
-            Collections.singletonMap(
-                participantSession.getPartyId(),
-                new InclusiveFilter(
-                    Collections.emptyMap(),
-                    Collections.singletonMap(
-                        IOU.TEMPLATE_ID, Filter.Template.HIDE_CREATED_EVENT_BLOB))));
+    StateClient stateClient = participantSession
+            .getDamlLedgerClient()
+            .getStateClient();
+
+    Long ledgerEnd = stateClient.getLedgerEnd().blockingGet();
+
+    EventFormat eventFormat = IOU.contractFilter().eventFormat(Optional.of(Set.of(participantSession.getPartyId())));
 
     IOU.ContractId iouCid =
         new IOU.ContractId(
-            participantSession
-                .getDamlLedgerClient()
-                .getActiveContractSetClient()
-                .getActiveContracts(getIousAcsFilter, false)
-                .blockingFirst()
-                .getCreatedEvents()
-                .get(0)
-                .getContractId());
+                stateClient
+                  .getActiveContracts(eventFormat, ledgerEnd)
+                  .blockingFirst()
+                  .getContractEntry()
+                  .get()
+                  .getCreatedEvent()
+                  .getContractId());
 
     logger.info("BUYER: Reading shared disclosed contracts");
     DisclosedContract offer = Common.readDisclosedContract(Common.OFFER_DISCLOSED_CONTRACT_FILE);
@@ -72,7 +84,7 @@ public class Buyer {
 
     CommandsSubmission commandsSubmission =
         CommandsSubmission.create(
-                Common.APP_ID, UUID.randomUUID().toString(), exerciseAcceptOfferCommand)
+                Common.APP_ID, UUID.randomUUID().toString(), Optional.empty(), exerciseAcceptOfferCommand)
             .withWorkflowId("Buyer-buy-stock")
             .withDisclosedContracts(disclosedContracts)
             .withActAs(participantSession.getPartyId());

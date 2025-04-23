@@ -1,14 +1,15 @@
 package examples.stockexchange.parties;
 
 import com.daml.ledger.javaapi.data.*;
+import com.daml.ledger.rxjava.StateClient;
+import examples.codegen.stockexchange.IOU;
 import examples.codegen.stockexchange.Offer;
 import examples.codegen.stockexchange.Stock;
 import examples.stockexchange.Common;
 import examples.stockexchange.ParticipantSession;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,24 +35,23 @@ public class Seller {
   private static void announceStockSaleOffer(
       String stockExchangePartyId, ParticipantSession participantSession) throws IOException {
     logger.info("SELLER: Fetching contract-id of owned Stock");
-    FiltersByParty getStockAcsFilter =
-        new FiltersByParty(
-            Collections.singletonMap(
-                participantSession.getPartyId(),
-                new InclusiveFilter(
-                    Collections.emptyMap(),
-                    Collections.singletonMap(
-                        Stock.TEMPLATE_ID, Filter.Template.HIDE_CREATED_EVENT_BLOB))));
+
+    StateClient stateClient = participantSession
+            .getDamlLedgerClient()
+            .getStateClient();
+
+    Long ledgerEnd = stateClient.getLedgerEnd().blockingGet();
+
+    EventFormat eventFormat = Stock.contractFilter().eventFormat(Optional.of(Set.of(participantSession.getPartyId())));
 
     Stock.ContractId stockCid =
         new Stock.ContractId(
-            participantSession
-                .getDamlLedgerClient()
-                .getActiveContractSetClient()
-                .getActiveContracts(getStockAcsFilter, false)
+            stateClient
+                .getActiveContracts(eventFormat, ledgerEnd)
                 .blockingFirst()
-                .getCreatedEvents()
-                .get(0)
+                .getContractEntry()
+                .get()
+                .getCreatedEvent()
                 .getContractId());
 
     List<Command> createOfferCommand =
@@ -60,7 +60,7 @@ public class Seller {
             .commands();
 
     CommandsSubmission commandsSubmission =
-        CommandsSubmission.create(Common.APP_ID, UUID.randomUUID().toString(), createOfferCommand)
+        CommandsSubmission.create(Common.APP_ID, UUID.randomUUID().toString(), Optional.empty(), createOfferCommand)
             .withWorkflowId("Seller-Offer")
             .withActAs(participantSession.getPartyId());
 
@@ -76,14 +76,14 @@ public class Seller {
         Common.fetchContractForDisclosure(
             participantSession.getDamlLedgerClient(),
             participantSession.getPartyId(),
-            Stock.TEMPLATE_ID);
+            Stock.contractFilter());
 
     logger.info("SELLER: Fetching Offer disclosed contract for sharing");
     DisclosedContract offerDisclosedContract =
         Common.fetchContractForDisclosure(
             participantSession.getDamlLedgerClient(),
             participantSession.getPartyId(),
-            Offer.TEMPLATE_ID);
+            Offer.contractFilter());
 
     logger.info("SELLER: Sharing Stock disclosed contract");
     Common.shareDisclosedContract(stockDisclosedContract, Common.STOCK_DISCLOSED_CONTRACT_FILE);
