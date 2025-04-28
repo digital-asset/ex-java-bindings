@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2024 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.reactive;
@@ -9,7 +9,6 @@ import java.util.UUID;
 
 import com.daml.ledger.api.v1.CommandsOuterClass.Command;
 import com.daml.ledger.api.v1.CommandsOuterClass.CreateCommand;
-import com.daml.ledger.api.v1.ValueOuterClass.Identifier;
 import com.daml.ledger.api.v1.ValueOuterClass.Record;
 import com.daml.ledger.api.v1.ValueOuterClass.RecordField;
 import com.daml.ledger.api.v1.ValueOuterClass.Value;
@@ -54,21 +53,18 @@ public class PingPongReactiveMain {
         String bobParty = userManagementClient.getUser(new GetUserRequest(BOB_USER)).blockingGet().getUser().getPrimaryParty().get();
 
         String packageId = Optional.ofNullable(System.getProperty("package.id")).orElseThrow(() -> new RuntimeException("package.id must be specified via sys properties"));
-        var pingIdentifier = com.daml.ledger.javaapi.data.Identifier.fromProto(Identifier.newBuilder()
-                .setPackageId(packageId).setModuleName("PingPong").setEntityName("Ping").build());
-        var pongIdentifier = com.daml.ledger.javaapi.data.Identifier.fromProto(Identifier.newBuilder()
-                .setPackageId(packageId).setModuleName("PingPong").setEntityName("Pong").build());
+        IdentifierCreator identifierCreator = new IdentifierCreator(packageId);
         // initialize the ping pong processors for Alice and Bob
-        PingPongProcessor aliceProcessor = new PingPongProcessor(aliceParty, client, pingIdentifier, pongIdentifier);
-        PingPongProcessor bobProcessor = new PingPongProcessor(bobParty, client, pingIdentifier, pongIdentifier);
+        PingPongProcessor aliceProcessor = new PingPongProcessor(aliceParty, client, identifierCreator);
+        PingPongProcessor bobProcessor = new PingPongProcessor(bobParty, client, identifierCreator);
 
         // start the processors asynchronously
         aliceProcessor.runIndefinitely();
         bobProcessor.runIndefinitely();
 
         // send the initial commands for both parties
-        createInitialContracts(client, aliceParty, bobParty, pingIdentifier.toProto(), numInitialContracts);
-        createInitialContracts(client, bobParty, aliceParty, pingIdentifier.toProto(), numInitialContracts);
+        createInitialContracts(client, aliceParty, bobParty, identifierCreator, numInitialContracts);
+        createInitialContracts(client, bobParty, aliceParty, identifierCreator, numInitialContracts);
 
         try {
             // wait a couple of seconds for the processing to finish
@@ -90,7 +86,7 @@ public class PingPongReactiveMain {
      * @param numContracts   the number of initial contracts to create
      */
     private static void createInitialContracts(LedgerClient client, String sender, String receiver,
-            Identifier pingIdentifier, int numContracts) {
+            IdentifierCreator identifierCreator, int numContracts) {
 
         for (int i = 0; i < numContracts; i++) {
             // command that creates the initial Ping contract with the required parameters
@@ -98,12 +94,12 @@ public class PingPongReactiveMain {
 
             Command createCommand = Command.newBuilder().setCreate(
                     CreateCommand.newBuilder()
-                            .setTemplateId(pingIdentifier)
+                            .setTemplateId(identifierCreator.pingIdentifier().toProto())
                             .setCreateArguments(
                                     Record.newBuilder()
                                             // the identifier for a template's record is the same as the identifier for
                                             // the template
-                                            .setRecordId(pingIdentifier)
+                                            .setRecordId(identifierCreator.pinnedPingIdentifier().toProto())
                                             .addFields(RecordField.newBuilder().setLabel("sender")
                                                     .setValue(Value.newBuilder().setParty(sender)))
                                             .addFields(RecordField.newBuilder().setLabel("receiver")

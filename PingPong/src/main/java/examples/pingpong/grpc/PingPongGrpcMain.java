@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2024 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.grpc;
@@ -52,38 +52,24 @@ public class PingPongGrpcMain {
         // Initialize a plaintext gRPC channel
         ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
 
-        // fetch the ledger ID, which is used in subsequent requests sent to the ledger
-        String ledgerId = fetchLedgerId(channel);
-
         // fetch the party IDs that got created in the Daml init script
         String aliceParty = fetchPartyId(channel, ALICE_USER);
         String bobParty = fetchPartyId(channel, BOB_USER);
 
         String packageId = Optional.ofNullable(System.getProperty("package.id"))
                 .orElseThrow(() -> new RuntimeException("package.id must be specified via sys properties"));
-
-        Identifier pingIdentifier = Identifier.newBuilder()
-                .setPackageId(packageId)
-                .setModuleName("PingPong")
-                .setEntityName("Ping")
-                .build();
-        Identifier pongIdentifier = Identifier.newBuilder()
-                .setPackageId(packageId)
-                .setModuleName("PingPong")
-                .setEntityName("Pong")
-                .build();
-
+        IdentifierCreator identifierCreator = new IdentifierCreator(packageId);
         // initialize the ping pong processors for Alice and Bob
-        PingPongProcessor aliceProcessor = new PingPongProcessor(aliceParty, ledgerId, channel, pingIdentifier, pongIdentifier);
-        PingPongProcessor bobProcessor = new PingPongProcessor(bobParty, ledgerId, channel, pingIdentifier, pongIdentifier);
+        PingPongProcessor aliceProcessor = new PingPongProcessor(aliceParty, channel, identifierCreator);
+        PingPongProcessor bobProcessor = new PingPongProcessor(bobParty, channel, identifierCreator);
 
         // start the processors asynchronously
         aliceProcessor.runIndefinitely();
         bobProcessor.runIndefinitely();
 
         // send the initial commands for both parties
-        createInitialContracts(channel, ledgerId, aliceParty, bobParty, pingIdentifier, numInitialContracts);
-        createInitialContracts(channel, ledgerId, bobParty, aliceParty, pingIdentifier, numInitialContracts);
+        createInitialContracts(channel, aliceParty, bobParty, identifierCreator, numInitialContracts);
+        createInitialContracts(channel, bobParty, aliceParty, identifierCreator, numInitialContracts);
 
 
         try {
@@ -99,24 +85,24 @@ public class PingPongGrpcMain {
      * Creates numContracts number of Ping contracts. The sender is used as the submitting party.
      *
      * @param channel        the gRPC channel to use for services
-     * @param ledgerId       the previously fetched ledger id
      * @param sender         the party that sends the initial Ping contract
      * @param receiver       the party that receives the initial Ping contract
      * @param pingIdentifier the PingPong.Ping template identifier
      * @param numContracts   the number of initial contracts to create
      */
-    private static void createInitialContracts(ManagedChannel channel, String ledgerId, String sender, String receiver, Identifier pingIdentifier, int numContracts) {
+    private static void createInitialContracts(ManagedChannel channel, String sender, String receiver,
+        IdentifierCreator identifierCreator, int numContracts) {
         CommandSubmissionServiceFutureStub submissionService = CommandSubmissionServiceGrpc.newFutureStub(channel);
 
         for (int i = 0; i < numContracts; i++) {
             // command that creates the initial Ping contract with the required parameters according to the model
             Command createCommand = Command.newBuilder().setCreate(
                     CreateCommand.newBuilder()
-                            .setTemplateId(pingIdentifier)
+                            .setTemplateId(identifierCreator.pingIdentifier().toProto())
                             .setCreateArguments(
                                     Record.newBuilder()
                                             // the identifier for a template's record is the same as the identifier for the template
-                                            .setRecordId(pingIdentifier)
+                                            .setRecordId(identifierCreator.pinnedPingIdentifier().toProto())
                                             .addFields(RecordField.newBuilder().setLabel("sender").setValue(Value.newBuilder().setParty(sender)))
                                             .addFields(RecordField.newBuilder().setLabel("receiver").setValue(Value.newBuilder().setParty(receiver)))
                                             .addFields(RecordField.newBuilder().setLabel("count").setValue(Value.newBuilder().setInt64(0)))
@@ -125,7 +111,6 @@ public class PingPongGrpcMain {
 
 
             SubmitRequest submitRequest = SubmitRequest.newBuilder().setCommands(Commands.newBuilder()
-                    .setLedgerId(ledgerId)
                     .setCommandId(UUID.randomUUID().toString())
                     .setWorkflowId(String.format("Ping-%s-%d", sender, i))
                     .setParty(sender)
@@ -136,18 +121,6 @@ public class PingPongGrpcMain {
             // asynchronously send the commands
             submissionService.submit(submitRequest);
         }
-    }
-
-    /**
-     * Fetches the ledger id via the Ledger Identity Service.
-     *
-     * @param channel the gRPC channel to use for services
-     * @return the ledger id as provided by the ledger
-     */
-    private static String fetchLedgerId(ManagedChannel channel) {
-        LedgerIdentityServiceBlockingStub ledgerIdService = LedgerIdentityServiceGrpc.newBlockingStub(channel);
-        GetLedgerIdentityResponse identityResponse = ledgerIdService.getLedgerIdentity(GetLedgerIdentityRequest.getDefaultInstance());
-        return identityResponse.getLedgerId();
     }
 
     private static String fetchPartyId(ManagedChannel channel, String userId) {

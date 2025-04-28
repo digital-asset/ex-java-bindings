@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2024 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.grpc;
@@ -40,21 +40,17 @@ import java.util.stream.Stream;
 public class PingPongProcessor {
 
     private final String party;
-    private final String ledgerId;
-
+    
     private final TransactionServiceStub transactionService;
     private final CommandSubmissionServiceBlockingStub submissionService;
 
-    private final Identifier pingIdentifier;
-    private final Identifier pongIdentifier;
+    private final IdentifierCreator identifierCreator;
 
-    public PingPongProcessor(String party, String ledgerId, ManagedChannel channel, Identifier pingIdentifier, Identifier pongIdentifier) {
+    public PingPongProcessor(String party, ManagedChannel channel, IdentifierCreator identifierCreator) {
         this.party = party;
-        this.ledgerId = ledgerId;
         this.transactionService = TransactionServiceGrpc.newStub(channel);
         this.submissionService = CommandSubmissionServiceGrpc.newBlockingStub(channel);
-        this.pingIdentifier = pingIdentifier;
-        this.pongIdentifier = pongIdentifier;
+        this.identifierCreator = identifierCreator;
     }
 
     public void runIndefinitely() {
@@ -64,14 +60,13 @@ public class PingPongProcessor {
                         Filters.newBuilder()
                                 .setInclusive(
                                         InclusiveFilters.newBuilder()
-                                                .addTemplateIds(pingIdentifier)
-                                                .addTemplateIds(pongIdentifier)
+                                                .addTemplateIds(identifierCreator.pingIdentifier().toProto())
+                                                .addTemplateIds(identifierCreator.pongIdentifier().toProto())
                                                 .build())
                                 .build());
         // assemble the request for the transaction stream
         GetTransactionsRequest transactionsRequest = GetTransactionsRequest.newBuilder()
-                .setLedgerId(ledgerId)
-                .setBegin(LedgerOffset.newBuilder().setBoundary(LedgerBoundary.LEDGER_BEGIN))
+                .setBegin(LedgerOffset.newBuilder().setBoundary(LedgerBoundary.LEDGER_END))
                 .setFilter(filtersByParty)
                 .setVerbose(true)
                 .build();
@@ -114,7 +109,6 @@ public class PingPongProcessor {
                     .setCommands(Commands.newBuilder()
                             .setCommandId(UUID.randomUUID().toString())
                             .setWorkflowId(tx.getWorkflowId())
-                            .setLedgerId(ledgerId)
                             .setParty(party)
                             .setApplicationId(PingPongGrpcMain.APP_ID)
                             .addAllCommands(commands)
@@ -137,10 +131,10 @@ public class PingPongProcessor {
     private Stream<Command> processEvent(String workflowId, CreatedEvent event) {
         Identifier template = event.getTemplateId();
 
-        boolean isPingPongModule = template.getModuleName().equals(pingIdentifier.getModuleName());
+        boolean isPingPongModule = template.getModuleName().equals(identifierCreator.pingIdentifier().getModuleName());
 
-        boolean isPing = template.getEntityName().equals(pingIdentifier.getEntityName());
-        boolean isPong = template.getEntityName().equals(pongIdentifier.getEntityName());
+        boolean isPing = template.getEntityName().equals(identifierCreator.pingIdentifier().getEntityName());
+        boolean isPong = template.getEntityName().equals(identifierCreator.pongIdentifier().getEntityName());
 
         if (!isPingPongModule || !isPing && !isPong) return Stream.empty();
 

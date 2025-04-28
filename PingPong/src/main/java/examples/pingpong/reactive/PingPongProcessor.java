@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+// Copyright (c) 2024 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
 package examples.pingpong.reactive;
@@ -26,18 +26,14 @@ public class PingPongProcessor {
     private static final Logger logger = LoggerFactory.getLogger(PingPongProcessor.class);
 
     private final String party;
-    private final String ledgerId;
     private LedgerClient client;
 
-    private final Identifier pingIdentifier;
-    private final Identifier pongIdentifier;
+    private final IdentifierCreator identifierCreator;
 
-    public PingPongProcessor(String party, LedgerClient client, Identifier pingIdentifier, Identifier pongIdentifier) {
+    public PingPongProcessor(String party, LedgerClient client, IdentifierCreator identifierCreator) {
         this.party = party;
-        this.ledgerId = client.getLedgerId();
         this.client = client;
-        this.pingIdentifier = pingIdentifier;
-        this.pongIdentifier = pongIdentifier;
+        this.identifierCreator = identifierCreator;
     }
 
     public void runIndefinitely() {
@@ -84,8 +80,8 @@ public class PingPongProcessor {
     private Stream<Command> processEvent(String workflowId, CreatedEvent event) {
         Identifier template = event.getTemplateId();
 
-        boolean isPing = template.equals(pingIdentifier);
-        boolean isPong = template.equals(pongIdentifier);
+        boolean isPing = template.getEntityName().equals(identifierCreator.pingIdentifier().getEntityName());
+        boolean isPong = template.getEntityName().equals(identifierCreator.pongIdentifier().getEntityName());
 
         if (!isPing && !isPong) return Stream.empty();
 

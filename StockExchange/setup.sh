@@ -22,6 +22,15 @@ function start_canton() {
   fi
 }
 
+function upload_package() {
+  version=${1:-"1.0.0"}
+  for port in 5011 5021 5031 5041 ;
+  do
+    daml ledger upload-dar --host localhost --port "${port}" .daml/dist/ex-java-bindings-stock-exchange-"${version}".dar
+  done
+
+}
+
 function run_stock_exchange() {
   echo "Running StockExchange"
   stockExchangePartiesFile="temp_stock_exchange_example/stock_exchange_parties.txt"
