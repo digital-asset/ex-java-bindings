@@ -58,9 +58,9 @@ public class Buyer {
     disclosedContracts.add(stock);
 
     List<Command> exerciseAcceptOfferCommand =
-        new Offer.ContractId(offer.contractId.get())
+        new Offer.ContractId(validateContractId(offer.contractId, "offer"))
             .exerciseOffer_Accept(
-                new PriceQuotation.ContractId(priceQuotation.contractId.get()),
+                new PriceQuotation.ContractId(validateContractId(priceQuotation.contractId, "priceQuotation")),
                 participantSession.getPartyId(),
                 iouCid)
             .commands();
@@ -78,5 +78,11 @@ public class Buyer {
         .submitAndWait(SubmitAndWaitRequest.toProto(commandsSubmission));
 
     logger.info("BUYER: Success");
+  }
+
+  private static String validateContractId(Optional<String> contractId, String where) {
+    return contractId
+      .orElseThrow(
+        () -> new RuntimeException(String.format("contractId not set for %s", where)));
   }
 }

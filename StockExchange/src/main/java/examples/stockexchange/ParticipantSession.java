@@ -32,8 +32,8 @@ public class ParticipantSession implements AutoCloseable {
     return partyId;
   }
 
-  public StateServiceBlockingStub getStateService() {return stateService;}
-  public CommandServiceGrpc.CommandServiceBlockingStub getCommandService() {return commandService;}
+  public StateServiceBlockingStub getStateService() { return stateService; }
+  public CommandServiceGrpc.CommandServiceBlockingStub getCommandService() { return commandService; }
 
   @Override
   public void close() throws Exception {
