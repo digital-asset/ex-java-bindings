@@ -3,10 +3,7 @@ package examples.stockexchange.parties;
 import static examples.stockexchange.Common.APP_ID;
 import static examples.stockexchange.Common.fetchContractForDisclosure;
 
-import com.daml.ledger.javaapi.data.Command;
-import com.daml.ledger.javaapi.data.CommandsSubmission;
-import com.daml.ledger.javaapi.data.DisclosedContract;
-import com.daml.ledger.javaapi.data.TransactionFormat;
+import com.daml.ledger.javaapi.data.*;
 import examples.codegen.stockexchange.PriceQuotation;
 import examples.codegen.stockexchange.Stock;
 import examples.stockexchange.Common;
@@ -58,10 +55,8 @@ public class StockExchange {
 
     logger.info("STOCK_EXCHANGE: Issuing stock with name {} to {}", issuedStockName, sellerPartyId);
     participantSession
-        .getDamlLedgerClient()
-        .getCommandClient()
-        .submitAndWait(issueStockSubmission)
-        .blockingGet();
+        .getCommandService()
+        .submitAndWait(SubmitAndWaitRequest.toProto(issueStockSubmission));
 
     List<Command> createPriceQuotationCommand =
         new PriceQuotation(
@@ -81,12 +76,11 @@ public class StockExchange {
         issuedStockName,
         issuedStockPriceQuotation);
     participantSession
-        .getDamlLedgerClient()
-        .getCommandClient()
-        .submitAndWaitForTransaction(emitPriceQuotationSubmission, transactionFormat)
-        .blockingGet()
-        .getEvents()
-        .get(0)
+        .getCommandService()
+        .submitAndWaitForTransaction(new SubmitAndWaitForTransactionRequest(emitPriceQuotationSubmission, transactionFormat).toProto())
+        .getTransaction()
+        .getEvents(0)
+        .getCreated()
         .getContractId();
 
     logger.info(
@@ -94,7 +88,7 @@ public class StockExchange {
         issuedStockName);
     DisclosedContract priceQuotationDisclosedContract =
         fetchContractForDisclosure(
-            participantSession.getDamlLedgerClient(),
+            participantSession.getStateService(),
             participantSession.getPartyId(),
             PriceQuotation.contractFilter());
 

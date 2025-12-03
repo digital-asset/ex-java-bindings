@@ -1,7 +1,8 @@
 package examples.stockexchange.parties;
 
+import com.daml.ledger.api.v2.StateServiceGrpc;
+import com.daml.ledger.api.v2.StateServiceOuterClass;
 import com.daml.ledger.javaapi.data.*;
-import com.daml.ledger.rxjava.StateClient;
 import examples.codegen.stockexchange.IOU;
 import examples.codegen.stockexchange.Offer;
 import examples.codegen.stockexchange.Stock;
@@ -36,21 +37,18 @@ public class Seller {
       String stockExchangePartyId, ParticipantSession participantSession) throws IOException {
     logger.info("SELLER: Fetching contract-id of owned Stock");
 
-    StateClient stateClient = participantSession
-            .getDamlLedgerClient()
-            .getStateClient();
+    StateServiceGrpc.StateServiceBlockingStub stateClient = participantSession.getStateService();
 
-    Long ledgerEnd = stateClient.getLedgerEnd().blockingGet();
+    Long ledgerEnd = stateClient.getLedgerEnd(StateServiceOuterClass.GetLedgerEndRequest.newBuilder().build()).getOffset();
 
     EventFormat eventFormat = Stock.contractFilter().eventFormat(Optional.of(Set.of(participantSession.getPartyId())));
 
     Stock.ContractId stockCid =
         new Stock.ContractId(
             stateClient
-                .getActiveContracts(eventFormat, ledgerEnd)
-                .blockingFirst()
-                .getContractEntry()
-                .get()
+                .getActiveContracts(new GetActiveContractsRequest(eventFormat, ledgerEnd).toProto())
+                .next()
+                .getActiveContract()
                 .getCreatedEvent()
                 .getContractId());
 
@@ -66,22 +64,20 @@ public class Seller {
 
     logger.info("SELLER: Creating on-ledger Offer for selling owned Stock");
     participantSession
-        .getDamlLedgerClient()
-        .getCommandClient()
-        .submitAndWait(commandsSubmission)
-        .blockingGet();
+        .getCommandService()
+        .submitAndWait(SubmitAndWaitRequest.toProto(commandsSubmission));
 
     logger.info("SELLER: Fetching Stock disclosed contract for sharing");
     DisclosedContract stockDisclosedContract =
         Common.fetchContractForDisclosure(
-            participantSession.getDamlLedgerClient(),
+            participantSession.getStateService(),
             participantSession.getPartyId(),
             Stock.contractFilter());
 
     logger.info("SELLER: Fetching Offer disclosed contract for sharing");
     DisclosedContract offerDisclosedContract =
         Common.fetchContractForDisclosure(
-            participantSession.getDamlLedgerClient(),
+            participantSession.getStateService(),
             participantSession.getPartyId(),
             Offer.contractFilter());
 

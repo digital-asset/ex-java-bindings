@@ -1,38 +1,42 @@
 package examples.stockexchange;
 
+import com.daml.ledger.api.v2.CommandServiceGrpc;
+import com.daml.ledger.api.v2.StateServiceGrpc;
+import com.daml.ledger.api.v2.admin.UserManagementServiceGrpc;
+import com.daml.ledger.api.v2.admin.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
 import com.daml.ledger.javaapi.data.GetUserRequest;
-import com.daml.ledger.rxjava.DamlLedgerClient;
+import com.daml.ledger.api.v2.StateServiceGrpc.StateServiceBlockingStub;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 
 public class ParticipantSession implements AutoCloseable {
   private final String partyId;
-  private final DamlLedgerClient damlLedgerClient;
+  private final ManagedChannel channel;
+  private final StateServiceBlockingStub stateService;
+  private final UserManagementServiceBlockingStub userManagementService;
+  private final CommandServiceGrpc.CommandServiceBlockingStub commandService;
 
   public ParticipantSession(int ledgerApiPort, String userId) {
-    damlLedgerClient = DamlLedgerClient.newBuilder("127.0.0.1", ledgerApiPort).build();
-    damlLedgerClient.connect();
+    channel = ManagedChannelBuilder.forAddress("127.0.0.1", ledgerApiPort).usePlaintext().build();
+    stateService = StateServiceGrpc.newBlockingStub(channel);
+    userManagementService = UserManagementServiceGrpc.newBlockingStub(channel);
+    commandService = CommandServiceGrpc.newBlockingStub(channel);
     this.partyId =
-        damlLedgerClient
-            .getUserManagementClient()
-            .getUser(new GetUserRequest(userId))
-            .blockingGet()
+        userManagementService
+            .getUser(new GetUserRequest(userId).toProto())
             .getUser()
-            .getPrimaryParty()
-            .orElseThrow(
-                () ->
-                    new RuntimeException(
-                        String.format("Primary party not set for user id %s", userId)));
+            .getPrimaryParty();
   }
 
   public String getPartyId() {
     return partyId;
   }
 
-  public DamlLedgerClient getDamlLedgerClient() {
-    return damlLedgerClient;
-  }
+  public StateServiceBlockingStub getStateService() {return stateService;}
+  public CommandServiceGrpc.CommandServiceBlockingStub getCommandService() {return commandService;}
 
   @Override
   public void close() throws Exception {
-    damlLedgerClient.close();
+    channel.shutdown();
   }
 }

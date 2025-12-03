@@ -2,6 +2,7 @@ package examples.stockexchange.parties;
 
 import com.daml.ledger.javaapi.data.Command;
 import com.daml.ledger.javaapi.data.CommandsSubmission;
+import com.daml.ledger.javaapi.data.SubmitAndWaitRequest;
 import examples.codegen.stockexchange.IOU;
 import examples.stockexchange.Common;
 import examples.stockexchange.ParticipantSession;
@@ -41,10 +42,8 @@ public class Bank {
 
     logger.info("BANK: Issuing IOU with value {} to {}", issuedIouValue, buyerPartyId);
     participantSession
-        .getDamlLedgerClient()
-        .getCommandClient()
-        .submitAndWait(commandsSubmission)
-        .blockingGet();
+        .getCommandService()
+        .submitAndWait(SubmitAndWaitRequest.toProto(commandsSubmission));
 
     logger.info("BANK: Done");
   }
