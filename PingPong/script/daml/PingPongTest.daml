@@ -8,8 +8,8 @@ import Daml.Script
 setup : Script()
 setup = script do
   -- Set up parties
-  alice <- allocatePartyWithHint "Alice" (PartyIdHint "Alice")
-  bob <- allocatePartyWithHint "Bob" (PartyIdHint "Bob")
+  alice <- allocatePartyByHint (PartyIdHint "Alice")
+  bob <- allocatePartyByHint (PartyIdHint "Bob")
 
   -- Needed in 2.0, see https://docs.daml.com/tools/navigator/index.html
   aliceId <- validateUserId "alice"

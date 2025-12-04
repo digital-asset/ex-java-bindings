@@ -1,9 +1,7 @@
 package examples.stockexchange.parties;
 
-import com.daml.ledger.api.v2.TransactionFilterOuterClass;
-import com.daml.ledger.api.v2.ValueOuterClass;
+import com.daml.ledger.api.v2.*;
 import com.daml.ledger.javaapi.data.*;
-import com.daml.ledger.rxjava.StateClient;
 import examples.codegen.stockexchange.IOU;
 import examples.codegen.stockexchange.Offer;
 import examples.codegen.stockexchange.PriceQuotation;
@@ -33,21 +31,18 @@ public class Buyer {
 
   private static void acceptOffer(ParticipantSession participantSession) throws IOException {
     logger.info("BUYER: Fetching contract-id of owned IOU");
-    StateClient stateClient = participantSession
-            .getDamlLedgerClient()
-            .getStateClient();
+    StateServiceGrpc.StateServiceBlockingStub stateClient = participantSession.getStateService();
 
-    Long ledgerEnd = stateClient.getLedgerEnd().blockingGet();
+    Long ledgerEnd = stateClient.getLedgerEnd(StateServiceOuterClass.GetLedgerEndRequest.newBuilder().build()).getOffset();
 
     EventFormat eventFormat = IOU.contractFilter().eventFormat(Optional.of(Set.of(participantSession.getPartyId())));
 
     IOU.ContractId iouCid =
         new IOU.ContractId(
                 stateClient
-                  .getActiveContracts(eventFormat, ledgerEnd)
-                  .blockingFirst()
-                  .getContractEntry()
-                  .get()
+                  .getActiveContracts(new GetActiveContractsRequest(eventFormat, ledgerEnd).toProto())
+                  .next()
+                  .getActiveContract()
                   .getCreatedEvent()
                   .getContractId());
 
@@ -63,9 +58,9 @@ public class Buyer {
     disclosedContracts.add(stock);
 
     List<Command> exerciseAcceptOfferCommand =
-        new Offer.ContractId(offer.contractId)
+        new Offer.ContractId(validateContractId(offer.contractId, "offer"))
             .exerciseOffer_Accept(
-                new PriceQuotation.ContractId(priceQuotation.contractId),
+                new PriceQuotation.ContractId(validateContractId(priceQuotation.contractId, "priceQuotation")),
                 participantSession.getPartyId(),
                 iouCid)
             .commands();
@@ -79,11 +74,15 @@ public class Buyer {
 
     logger.info("BUYER: Submitting command for offer acceptance");
     participantSession
-        .getDamlLedgerClient()
-        .getCommandClient()
-        .submitAndWait(commandsSubmission)
-        .blockingGet();
+        .getCommandService()
+        .submitAndWait(SubmitAndWaitRequest.toProto(commandsSubmission));
 
     logger.info("BUYER: Success");
+  }
+
+  private static String validateContractId(Optional<String> contractId, String where) {
+    return contractId
+      .orElseThrow(
+        () -> new RuntimeException(String.format("contractId not set for %s", where)));
   }
 }

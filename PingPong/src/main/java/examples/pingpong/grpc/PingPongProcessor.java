@@ -11,11 +11,13 @@ import com.daml.ledger.api.v2.CommandsOuterClass.Commands;
 import com.daml.ledger.api.v2.CommandsOuterClass.ExerciseCommand;
 import com.daml.ledger.api.v2.EventOuterClass.CreatedEvent;
 import com.daml.ledger.api.v2.EventOuterClass.Event;
-import com.daml.ledger.api.v2.TransactionFilterOuterClass;
-import com.daml.ledger.api.v2.TransactionFilterOuterClass.Filters;
 import com.daml.ledger.api.v2.TransactionFilterOuterClass.CumulativeFilter;
-import com.daml.ledger.api.v2.TransactionFilterOuterClass.TransactionFilter;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.EventFormat;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.Filters;
 import com.daml.ledger.api.v2.TransactionFilterOuterClass.TemplateFilter;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.TransactionFormat;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.TransactionShape;
+import com.daml.ledger.api.v2.TransactionFilterOuterClass.UpdateFormat;
 import com.daml.ledger.api.v2.TransactionOuterClass.Transaction;
 import com.daml.ledger.api.v2.UpdateServiceGrpc;
 import com.daml.ledger.api.v2.UpdateServiceGrpc.UpdateServiceStub;
@@ -69,7 +71,8 @@ public class PingPongProcessor {
 
     public void runIndefinitely() {
         // restrict the subscription to ping and pong template types through an inclusive filter
-        final var filtersByParty = TransactionFilter.newBuilder()
+        final var eventFormat = EventFormat.newBuilder()
+                .setVerbose(true)
                 .putFiltersByParty(
                         party,
                         Filters
@@ -77,12 +80,18 @@ public class PingPongProcessor {
                                 .addCumulative(newTemplate(pingIdentifier))
                                 .addCumulative(newTemplate(pongIdentifier))
                                 .build(
-                        )).build();
+                                )).build();
+        final var transactionFormat = TransactionFormat.newBuilder()
+                .setEventFormat(eventFormat)
+                .setTransactionShape(TransactionShape.TRANSACTION_SHAPE_ACS_DELTA)
+                .build();
+        final var updateFormat = UpdateFormat.newBuilder()
+                .setIncludeTransactions(transactionFormat)
+                .build();
         // assemble the request for the transaction stream
         GetUpdatesRequest transactionsRequest = GetUpdatesRequest.newBuilder()
                 .setBeginExclusive(0L)
-                .setFilter(filtersByParty)
-                .setVerbose(true)
+                .setUpdateFormat(updateFormat)
                 .build();
 
         // this StreamObserver reacts to transactions and prints a message if an error occurs or the stream gets closed

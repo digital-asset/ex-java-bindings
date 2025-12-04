@@ -36,7 +36,9 @@ where this example's flow is also presented in more detail.
 Running the example
 ===================
 
-#. If you do not have it already, download and unzip `Canton open-source <https://github.com/digital-asset/daml/releases/download/v3.3.0-snapshot.20250417.0/canton-open-source-3.3.0-snapshot.20250416.15779.0.v6cccc0c4.tar.gz>`_  or a later version into a location of your choice.
+#. If you do not have it already, install the DAML SDK by running::
+
+   curl -sSL https://get.digitalasset.com/install/install.sh | sh -s 3.4.9
 
 #. Use the setup script for exposing the bash example utility functions in two shell terminal windows
 

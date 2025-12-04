@@ -18,13 +18,13 @@ function cleanup(){
 trap cleanup ERR EXIT
 
 echo "Compiling daml"
-daml build --all
+dpm build --all
 
 pushd main
-packageId=$(daml damlc inspect-dar --json .daml/dist/ex-java-bindings-0.0.2.dar | jq '.main_package_id' -r)
+packageId=$(dpm damlc inspect-dar --json .daml/dist/ex-java-bindings-0.0.2.dar | jq '.main_package_id' -r)
 
 echo "Generating java code"
-daml codegen java
+dpm codegen-java
 popd
 
 echo "Compiling code"
@@ -32,8 +32,8 @@ mvn compile
 
 # Could also run this manually in another terminal without the redirects
 echo "Starting sandbox"
-daml sandbox \
-  --port 7600 \
+dpm sandbox \
+  --ledger-api-port 7600 \
   --json-api-port 7575 \
   --canton-port-file ports.json \
   --dar main/.daml/dist/ex-java-bindings-0.0.2.dar \
@@ -43,7 +43,7 @@ echo "Waiting for sandbox to write the port file"
 until [ -e ports.json ]; do sleep 1; done
 
 echo "Running the script"
-daml script \
+dpm script \
   --dar script/.daml/dist/ex-java-bindings-script-0.0.2.dar \
   --ledger-host localhost \
   --ledger-port 7600 \
