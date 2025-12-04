@@ -1,12 +1,14 @@
 package examples.stockexchange;
 
+import com.daml.ledger.api.v2.StateServiceGrpc.StateServiceBlockingStub;
+import com.daml.ledger.api.v2.StateServiceOuterClass.GetLedgerEndRequest;
 import com.daml.ledger.javaapi.data.*;
-import com.daml.ledger.rxjava.DamlLedgerClient;
 import com.google.protobuf.ByteString;
 import java.io.*;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.Set;
 
 public class Common {
   public static final String APP_ID = "StockExchangeApp";
@@ -17,23 +19,16 @@ public class Common {
   public static final String OFFER_DISCLOSED_CONTRACT_FILE =
       "temp_stock_exchange_example/offer_disclosed_contract.txt";
 
-  public static DisclosedContract fetchContractForDisclosure(
-      DamlLedgerClient client, String reader, Identifier templateId) {
-    CreatedEvent event =
+  public static <Ct> DisclosedContract fetchContractForDisclosure(
+          StateServiceBlockingStub client, String reader, ContractFilter<Ct> contractFilter) {
+    Long ledgerEnd = client.getLedgerEnd(GetLedgerEndRequest.newBuilder().build()).getOffset();
+    EventFormat eventFormat = contractFilter.withIncludeCreatedEventBlob(true).eventFormat(Optional.of(Set.of(reader)));
+    CreatedEvent event = CreatedEvent.fromProto(
         client
-            .getActiveContractSetClient()
-            .getActiveContracts(
-                new FiltersByParty(
-                    Collections.singletonMap(
-                        reader,
-                        new InclusiveFilter(
-                            Collections.emptyMap(),
-                            Collections.singletonMap(
-                                templateId, Filter.Template.INCLUDE_CREATED_EVENT_BLOB)))),
-                false)
-            .blockingFirst()
-            .getCreatedEvents()
-            .get(0);
+            .getActiveContracts(new GetActiveContractsRequest(eventFormat, ledgerEnd).toProto())
+            .next()
+            .getActiveContract()
+            .getCreatedEvent());
     return new DisclosedContract(
         event.getTemplateId(), event.getContractId(), event.getCreatedEventBlob());
   }
@@ -44,10 +39,10 @@ public class Common {
       writer.append(
           String.format(
               "%s,%s,%s,%s,%s",
-              disclosedContract.contractId,
-              disclosedContract.templateId.getPackageId(),
-              disclosedContract.templateId.getModuleName(),
-              disclosedContract.templateId.getEntityName(),
+              disclosedContract.contractId.orElse(""),
+              disclosedContract.templateId.map(Identifier::getPackageId).orElse(""),
+              disclosedContract.templateId.map(Identifier::getModuleName).orElse(""),
+              disclosedContract.templateId.map(Identifier::getEntityName).orElse(""),
               Base64.getEncoder()
                   .encodeToString(disclosedContract.createdEventBlob.toByteArray())));
     }

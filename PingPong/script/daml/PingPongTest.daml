@@ -1,0 +1,18 @@
+-- Copyright (c) 2025 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+-- SPDX-License-Identifier: Apache-2.0
+
+module PingPongTest where
+
+import Daml.Script
+
+setup : Script()
+setup = script do
+  -- Set up parties
+  alice <- allocatePartyByHint (PartyIdHint "Alice")
+  bob <- allocatePartyByHint (PartyIdHint "Bob")
+
+  -- Needed in 2.0, see https://docs.daml.com/tools/navigator/index.html
+  aliceId <- validateUserId "alice"
+  bobId <- validateUserId "bob"
+  createUser (User aliceId (Some alice)) [CanActAs alice]
+  createUser (User bobId (Some bob)) [CanActAs bob]

@@ -3,15 +3,15 @@ package examples.stockexchange.parties;
 import static examples.stockexchange.Common.APP_ID;
 import static examples.stockexchange.Common.fetchContractForDisclosure;
 
-import com.daml.ledger.javaapi.data.Command;
-import com.daml.ledger.javaapi.data.CommandsSubmission;
-import com.daml.ledger.javaapi.data.DisclosedContract;
+import com.daml.ledger.javaapi.data.*;
 import examples.codegen.stockexchange.PriceQuotation;
 import examples.codegen.stockexchange.Stock;
 import examples.stockexchange.Common;
 import examples.stockexchange.ParticipantSession;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,16 +49,14 @@ public class StockExchange {
             .commands();
 
     CommandsSubmission issueStockSubmission =
-        CommandsSubmission.create(APP_ID, UUID.randomUUID().toString(), createStockCommand)
+        CommandsSubmission.create(APP_ID, UUID.randomUUID().toString(), Optional.empty(), createStockCommand)
             .withWorkflowId("Stock-issue")
             .withActAs(participantSession.getPartyId());
 
     logger.info("STOCK_EXCHANGE: Issuing stock with name {} to {}", issuedStockName, sellerPartyId);
     participantSession
-        .getDamlLedgerClient()
-        .getCommandClient()
-        .submitAndWait(issueStockSubmission)
-        .blockingGet();
+        .getCommandService()
+        .submitAndWait(SubmitAndWaitRequest.toProto(issueStockSubmission));
 
     List<Command> createPriceQuotationCommand =
         new PriceQuotation(
@@ -67,21 +65,22 @@ public class StockExchange {
             .commands();
 
     CommandsSubmission emitPriceQuotationSubmission =
-        CommandsSubmission.create(APP_ID, UUID.randomUUID().toString(), createPriceQuotationCommand)
+        CommandsSubmission.create(APP_ID, UUID.randomUUID().toString(), Optional.empty(), createPriceQuotationCommand)
             .withWorkflowId("PriceQuotation-issue")
             .withActAs(participantSession.getPartyId());
+
+    TransactionFormat transactionFormat = PriceQuotation.contractFilter().transactionFormat(Optional.of(Set.of(participantSession.getPartyId())));
 
     logger.info(
         "STOCK_EXCHANGE: Emitting price quotation for {} at value {}",
         issuedStockName,
         issuedStockPriceQuotation);
     participantSession
-        .getDamlLedgerClient()
-        .getCommandClient()
-        .submitAndWaitForTransaction(emitPriceQuotationSubmission)
-        .blockingGet()
-        .getEvents()
-        .get(0)
+        .getCommandService()
+        .submitAndWaitForTransaction(new SubmitAndWaitForTransactionRequest(emitPriceQuotationSubmission, transactionFormat).toProto())
+        .getTransaction()
+        .getEvents(0)
+        .getCreated()
         .getContractId();
 
     logger.info(
@@ -89,9 +88,9 @@ public class StockExchange {
         issuedStockName);
     DisclosedContract priceQuotationDisclosedContract =
         fetchContractForDisclosure(
-            participantSession.getDamlLedgerClient(),
+            participantSession.getStateService(),
             participantSession.getPartyId(),
-            PriceQuotation.TEMPLATE_ID);
+            PriceQuotation.contractFilter());
 
     logger.info("STOCK_EXCHANGE: Sharing PriceQuotation disclosed contract");
     Common.shareDisclosedContract(

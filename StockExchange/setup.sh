@@ -3,10 +3,10 @@ set -o pipefail
 
 function build_example() {
   echo "Compiling daml"
-  daml build
+  dpm build
 
   echo "Generating java code"
-  daml codegen java
+  dpm codegen-java
 
   echo "Compiling code"
   mvn compile

@@ -3,7 +3,7 @@ Java Bindings Ping-Pong Example
 
 ::
 
-  Copyright (c) 2023 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
+  Copyright (c) 2025 Digital Asset (Switzerland) GmbH and/or its affiliates. All rights reserved.
   SPDX-License-Identifier: Apache-2.0.0
 
 
@@ -31,14 +31,13 @@ To set a project up:
 
 #. If you do not have it already, install the DAML SDK by running::
 
-   curl https://get.daml.com | sh -s 2.8.0
+   curl -sSL https://get.digitalasset.com/install/install.sh | sh -s 3.4.9
 
 #. Use the start script for starting a ledger & the java application:
 
   ./start.sh <mainClass>
 
   * examples.pingpong.grpc.PingPongGrpcMain
-  * examples.pingpong.reactive.PingPongReactiveMain
   * examples.pingpong.codegen.PingPongCodegenMain
 
   depending on which example you wish to run. The script will take care of stopping an already running sandbox & start a fresh one on every call.

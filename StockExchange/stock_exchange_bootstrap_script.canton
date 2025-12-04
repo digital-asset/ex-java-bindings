@@ -1,14 +1,22 @@
 import java.nio.file.{Paths, Files, StandardOpenOption}
 import java.nio.charset.StandardCharsets
+import com.digitalasset.canton.config.RequireTypes.PositiveInt
+import com.digitalasset.canton.version.ProtocolVersion
 
 nodes.local.start()
 
-val javaBindingsDarPath = ".daml/dist/ex-java-bindings-stock-exchange-0.0.1.dar"
+val staticSynchronizerParameters = StaticSynchronizerParameters.defaults(local.config.crypto, ProtocolVersion.forSynchronizer)
+val synchronizerOwners = Seq(local, localMediator)
+bootstrap.synchronizer("mysynchronizer", Seq(local), Seq(localMediator), synchronizerOwners, PositiveInt.one, staticSynchronizerParameters)
 
-stockExchangeParticipant.domains.connect_local(mydomain)
-bankParticipant.domains.connect_local(mydomain)
-buyerParticipant.domains.connect_local(mydomain)
-sellerParticipant.domains.connect_local(mydomain)
+stockExchangeParticipant.synchronizers.connect_local(local, "mysynchronizer")
+bankParticipant.synchronizers.connect_local(local, "mysynchronizer")
+buyerParticipant.synchronizers.connect_local(local, "mysynchronizer")
+sellerParticipant.synchronizers.connect_local(local, "mysynchronizer")
+
+println("All nodes are ready.")
+
+val javaBindingsDarPath = ".daml/dist/ex-java-bindings-stock-exchange-0.0.1.dar"
 
 stockExchangeParticipant.dars.upload(javaBindingsDarPath)
 bankParticipant.dars.upload(javaBindingsDarPath)
@@ -21,15 +29,15 @@ val buyer = buyerParticipant.parties.enable("buyer")
 val seller = sellerParticipant.parties.enable("seller")
 
 // Write party ids to a file for allowing easy discovery
-val partiesFileContent = s"${stockExchange.toPrim}\n${bank.toPrim}\n${buyer.toPrim}\n${seller.toPrim}"
+val partiesFileContent = s"${stockExchange.toProtoPrimitive}\n${bank.toProtoPrimitive}\n${buyer.toProtoPrimitive}\n${seller.toProtoPrimitive}"
 Files.createDirectories(Paths.get("temp_stock_exchange_example"));
 Files.write(Paths.get("temp_stock_exchange_example/stock_exchange_parties.txt"), partiesFileContent.getBytes(StandardCharsets.UTF_8))
 
 println("Waiting for the parties to appear on their hosting participants' Ledger API...")
-utils.retry_until_true(buyerParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("buyer::")))
-utils.retry_until_true(sellerParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("seller::")))
-utils.retry_until_true(bankParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("bank::")))
-utils.retry_until_true(stockExchangeParticipant.ledger_api.parties.list().exists(_.party.toPrim.toString.startsWith("stockExchange::")))
+utils.retry_until_true(buyerParticipant.ledger_api.parties.list().exists(_.party.toProtoPrimitive.toString.startsWith("buyer::")))
+utils.retry_until_true(sellerParticipant.ledger_api.parties.list().exists(_.party.toProtoPrimitive.toString.startsWith("seller::")))
+utils.retry_until_true(bankParticipant.ledger_api.parties.list().exists(_.party.toProtoPrimitive.toString.startsWith("bank::")))
+utils.retry_until_true(stockExchangeParticipant.ledger_api.parties.list().exists(_.party.toProtoPrimitive.toString.startsWith("stockExchange::")))
 
 stockExchangeParticipant.ledger_api.users.create("StockExchange", actAs = Set(stockExchange), primaryParty = Some(stockExchange))
 bankParticipant.ledger_api.users.create("Bank", actAs = Set(bank), primaryParty = Some(bank))
