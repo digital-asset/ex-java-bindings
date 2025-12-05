@@ -50,7 +50,7 @@ The code for this example is in the package  `examples.pingpong.grpc <src/main/j
 PingPongGrpcMain.java
 =====================
 
-The entry point for the Java code is the main class `PingPongGrpcMain <src/main/java/examples/pingpong/grpc/PingPongGrpcMain.java#L46-L99>`_. Look at this class to see:
+The entry point for the Java code is the main class `PingPongGrpcMain <src/main/java/examples/pingpong/grpc/PingPongGrpcMain.java#L27>`_. Look at this class to see:
 
 - how to connect to and interact with the DAML Ledger via the Java Binding library
 - how to use the gRPC layer to build an automation for both parties.
@@ -66,15 +66,15 @@ The main function:
 PingPongProcessor.java
 ======================
 
-The core of the application is the method `PingPongProcessor.runIndefinitely() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L61-L91>`_.
+The core of the application is the method `PingPongProcessor.runIndefinitely() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L72>`_.
 
-This method retrieves a gRPC streaming endpoint using the ``GetTransactionsRequest`` request, and then creates a `RxJava <The Underlying Library: RxJava_>`_ ``StreamObserver``, providing implementations of the ``onNext``, ``onError`` and ``onComplete`` observer methods. ``RxJava`` arranges that these methods receive stream events asynchronously.
+This method retrieves a gRPC streaming endpoint using the ``GetUpdatesRequest`` request, and then creates a ``StreamObserver``, providing implementations of the ``onNext``, ``onError`` and ``onComplete`` observer methods. ``gRPC`` layer arranges that these methods receive stream events asynchronously.
 
-The method `onNext <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L72-L74>`_ is the main driver, extracting the transaction list from each ``GetTransactionResponse``, and passing in to  ``processTransaction()`` for processing. This method, and the method ``processTransaction()`` implements the application logic.
+The method `onNext <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L100>`_ is the main driver, extracting the transaction list from each ``GetUpdatesResponse``, and passing in to  ``processTransaction()`` for processing. This method, and the method ``processTransaction()`` implements the application logic.
 
-`processTransaction() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L96-L115>`_ extracts all creation events from the the transaction and passes them to ``processEvent()``. This produces a list of commands to be sent to the ledger to further the workflow, and these are packages up in a ``Commands`` request and sent to the ledger.
+`processTransaction() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L124>`_ extracts all creation events from the the transaction and passes them to ``processEvent()``. This produces a list of commands to be sent to the ledger to further the workflow, and these are packages up in a ``Commands`` request and sent to the ledger.
 
-`processEvent() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L127-L166>`_ takes a transaction event and turns it into a stream of commands to be sent back to the ledger. To do this, it examines the event for the correct package and template (it's a create of a ``Ping`` or ``Pong`` template) and then looks at the receiving part to decide if this processor should respond. If so, an exercise command for the correct choice is created and returned in a ``Stream``.
+`processEvent() <src/main/java/examples/pingpong/grpc/PingPongProcessor.java#L154>`_ takes a transaction event and turns it into a stream of commands to be sent back to the ledger. To do this, it examines the event for the correct package and template (it's a create of a ``Ping`` or ``Pong`` template) and then looks at the receiving part to decide if this processor should respond. If so, an exercise command for the correct choice is created and returned in a ``Stream``.
 
 In all other cases, an empty ``Stream`` is returned, indication no action is required.
 
@@ -97,61 +97,6 @@ The first line shows that:
 
 The second line is analogous to the first one.
 
-Example Project -- Ping Pong with Reactive Components
------------------------------------------------------
-
-The code for this example is in the package `examples.pingpong.reactive <src/main/java/examples/pingpong/reactive>`_.
-
-PingPongReactiveMain.java
-=========================
-
-The entry point for the Java code is the main class `PingPongReactiveMain <src/main/java/examples/pingpong/reactive/PingPongReactiveMain.java#L34-L80>`_.
-Look at this class to see:
-
-- how to connect to and interact with the DAML Ledger via the Java Binding library
-- how to use the Reactive layer to build an automation for both parties.
-
-At high level, the code does the following steps:
-
-- creates an instance of ``DamlLedgerClient`` connecting to an existing Ledger
-- connect this instance to the Ledger with ``DamlLedgerClient.connect()``
-- create two instances of `PingPongProcessor <src/main/java/examples/pingpong/reactive/PingPongProcessor.java>`_, which contain the logic of the automation
-- run the ``PingPongProcessor`` forever by connecting them to the incoming transactions
-- inject some contracts for each party of both templates
-- wait until the application is done
-
-PingPongProcessor.runIndefinitely
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The core of the application is the method `PingPongProcessor.runIndefinitely() <src/main/java/examples/pingpong/reactive/PingPongProcessor.java#L43-L49>`_.
-
-The ``PingPongProcessor`` queries the transactions first via the ``TransactionsClient``
-of the ``DamlLedgerClient``. Then, for each
-transaction, it produces ``Commands`` that will be sent to the Ledger via the ``CommandSubmissionClient``
-of the ``DamlLedgerClient``.
-
-Output
-======
-
-The application prints statements similar to these:
-
-.. code-block:: text
-
-    14:36:24.789 [client-1] INFO  e.p.reactive.PingPongProcessor - Bob is exercising RespondPong on #3136:0 in workflow Ping-Alice-1 at count 0
-    14:36:24.791 [client-0] INFO  e.p.reactive.PingPongProcessor - Alice is exercising RespondPing on #3139:1 in workflow Ping-Alice-0 at count 1
-
-The Underlying Library: RxJava
-==============================
-
-The Java Binding is `RxJava <http://github.com/ReactiveX/RxJava>`_, a library for
-composing asynchronous and event-based programs using observable sequences for the Java VM.
-It is part of the family of libraries called `ReactiveX <http://reactivex.io/>`_.
-
-ReactiveX was chosen as the underlying library for the Java Binding because
-many services that the DAML Ledger offers are exposed as streams of events.
-So an application that wants to interact with the DAML Ledger must react
-to one or more DAML Ledger streams.
-
 Example Project -- Ping Pong with Generated Java Data Layer
 -----------------------------------------------------------
 
@@ -160,7 +105,7 @@ The code for this example is in the package  `examples.pingpong.codegen <src/mai
 PingPongCodegenMain.java
 ========================
 
-The entry point for the Java code is the main class `PingPongCodegenMain <src/main/java/examples/pingpong/codegen/PingPongCodegenMain.java#L35-L77>`_. Look at this class to see:
+The entry point for the Java code is the main class `PingPongCodegenMain <src/main/java/examples/pingpong/codegen/PingPongCodegenMain.java#L23>`_. Look at this class to see:
 
 - how to connect to and interact with the DAML Ledger via the Java Binding library
 - how to use the gRPC layer to build an automation for both parties.
@@ -177,15 +122,15 @@ The main function:
 PingPongProcessor.java
 ======================
 
-The core of the application is the method `PingPongProcessor.runIndefinitely() <src/main/java/examples/pingpong/codegen/PingPongProcessor.java#L53-L87>`_.
+The core of the application is the method `PingPongProcessor.runIndefinitely() <src/main/java/examples/pingpong/codegen/PingPongProcessor.java#L48>`_.
 
-This method retrieves a gRPC streaming endpoint using the ``GetTransactionsRequest`` request, and then creates a `RxJava <The Underlying Library: RxJava_>`_ ``StreamObserver``, providing implementations of the ``onNext``, ``onError`` and ``onComplete`` observer methods. ``RxJava`` arranges that these methods receive stream events asynchronously.
+This method retrieves a gRPC streaming endpoint using the ``GetUpdatesRequest`` request, and then creates a ``StreamObserver``, providing implementations of the ``onNext``, ``onError`` and ``onComplete`` observer methods. ``gRPC`` layer arranges that these methods receive stream events asynchronously.
 
-The method `onNext <src/main/java/examples/pingpong/codegen/PingPongProcessor.java#L70-L72>`_ is the main driver, extracting the transaction list from each ``GetTransactionResponse``, and passing in to  ``processTransaction()`` for processing. This method, and the method ``processTransaction()`` implements the application logic.
+The method `onNext <src/main/java/examples/pingpong/codegen/PingPongProcessor.java#L79>`_ is the main driver, extracting the transaction list from each ``GetUpdatesResponse``, and passing in to  ``processTransaction()`` for processing. This method, and the method ``processTransaction()`` implements the application logic.
 
-`processTransaction() <src/main/java/examples/pingpong/codegen/PingPongProcessor.java#L94-L110>`_ extracts all creation events from the the transaction and passes them to ``processEvent()``. This produces a list of commands to be sent to the ledger to further the workflow, and these are packages up in a ``Commands`` request and sent to the ledger.
+`processTransaction() <src/main/java/examples/pingpong/codegen/PingPongProcessor.java#L104>`_ extracts all creation events from the the transaction and passes them to ``processEvent()``. This produces a list of commands to be sent to the ledger to further the workflow, and these are packages up in a ``Commands`` request and sent to the ledger.
 
-`processEvent() <src/main/java/examples/pingpong/codegen/PingPongProcessor.java#L122-L154>`_ takes a transaction event and turns it into a stream of commands to be sent back to the ledger. To do this, it examines the event for the correct package and template (it's a create of a ``Ping`` or ``Pong`` template) and then looks at the receiving part to decide if this processor should respond. If so, an exercise command for the correct choice is created and returned in a ``Stream``.
+`processEvent() <src/main/java/examples/pingpong/codegen/PingPongProcessor.java#LL133>`_ takes a transaction event and turns it into a stream of commands to be sent back to the ledger. To do this, it examines the event for the correct package and template (it's a create of a ``Ping`` or ``Pong`` template) and then looks at the receiving part to decide if this processor should respond. If so, an exercise command for the correct choice is created and returned in a ``Stream``.
 
 In all other cases, an empty ``Stream`` is returned, indication no action is required.
 
